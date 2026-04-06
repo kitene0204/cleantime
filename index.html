@@ -7,37 +7,37 @@
     <meta name="mobile-web-app-capable" content="yes">
     <title>청소 시간 타이머</title>
     
-    <!-- React, ReactDOM, Babel 라이브러리 불러오기 -->
+    <!-- React, ReactDOM, Babel 라이브러리 -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- localForage 라이브러리 (브라우저에 대용량 파일 저장 용도) -->
+    <!-- localForage (데이터 저장용) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     
-    <!-- Tailwind CSS (스타일링) 불러오기 -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- 폰트 스타일 -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
         body { font-family: 'Jua', sans-serif; margin: 0; padding: 0; }
-        /* 애니메이션 추가 */
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+        /* 유튜브 플레이어 숨김 */
+        #youtube-player-container { position: absolute; width: 0; height: 0; overflow: hidden; opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
-    <!-- React 코드를 브라우저가 읽을 수 있도록 번역(Babel) -->
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // SVG 아이콘 직접 정의 (깨짐 방지)
+        // SVG 아이콘
         const Play = ({ className }) => <svg viewBox="0 0 24 24" fill="currentColor" className={className}><path d="M8 5v14l11-7z"/></svg>;
         const Pause = ({ className }) => <svg viewBox="0 0 24 24" fill="currentColor" className={className}><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>;
         const SkipForward = ({ className }) => <svg viewBox="0 0 24 24" fill="currentColor" className={className}><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>;
@@ -48,8 +48,8 @@
         const Maximize = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>;
         const Minimize = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>;
         const Music = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>;
+        const YoutubeIcon = ({ className }) => <svg viewBox="0 0 24 24" fill="currentColor" className={className}><path d="M21.582 6.186a2.618 2.618 0 0 0-1.841-1.854C18.118 3.9 12 3.9 12 3.9s-6.118 0-7.741.432a2.618 2.618 0 0 0-1.841 1.854C2 7.828 2 12 2 12s0 4.172.418 5.814a2.618 2.618 0 0 0 1.841 1.854C5.882 20.1 12 20.1 12 20.1s6.118 0 7.741-.432a2.618 2.618 0 0 0 1.841-1.854C22 16.172 22 12 22 12s0-4.172-.418-5.814zM9.99 15.45V8.55L15.993 12 9.99 15.45z"/></svg>;
 
-        // 청소 단계 데이터 설정
         const steps = [
           { title: "책상 위, 서랍 정리하기", time: 50, emoji: "📚✨" },
           { title: "책상 살짝 밀고, 창문 열기", time: 50, emoji: "☀️💨" },
@@ -59,11 +59,14 @@
           { title: "손 씻고 급식 줄서기", time: 180, emoji: "💦🍱" }
         ];
 
-        // 단계별 파스텔 배경색 배열
-        const bgColors = [
-          'bg-pink-100', 'bg-orange-100', 'bg-yellow-100', 
-          'bg-green-100', 'bg-blue-100', 'bg-purple-100'
-        ];
+        const bgColors = ['bg-pink-100', 'bg-orange-100', 'bg-yellow-100', 'bg-green-100', 'bg-blue-100', 'bg-purple-100'];
+
+        // 유튜브 URL에서 ID 추출 정규식
+        function extractYouTubeId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
 
         function App() {
           const [started, setStarted] = useState(false);
@@ -72,96 +75,136 @@
           const [isPaused, setIsPaused] = useState(false);
           const [isFullscreen, setIsFullscreen] = useState(false);
           
-          // 기본 오디오 소스 설정 (같은 폴더의 bgm.mp3)
+          // 음악 관련 상태 ('file', 'youtube', 'default')
+          const [musicMode, setMusicMode] = useState('default');
           const [audioSrc, setAudioSrc] = useState("bgm.mp3");
-          const [hasSavedMusic, setHasSavedMusic] = useState(false);
           const [musicName, setMusicName] = useState("");
+          const [youtubeUrlInput, setYoutubeUrlInput] = useState("");
+          const [youtubeId, setYoutubeId] = useState("");
+          const [ytApiReady, setYtApiReady] = useState(false);
           
           const audioRef = useRef(null);
           const wakeLockRef = useRef(null);
           const fileInputRef = useRef(null);
+          const ytPlayerRef = useRef(null);
 
-          // 첫 로딩 시: 브라우저에 저장된 음악 파일이 있는지 확인하여 불러오기
+          // 1. 초기 로딩 시: 저장된 음악 설정 불러오기 및 유튜브 API 로드
           useEffect(() => {
-            localforage.getItem('savedBgm').then((savedData) => {
-              if (savedData && savedData.blob) {
-                const fileUrl = URL.createObjectURL(savedData.blob);
-                setAudioSrc(fileUrl);
-                setHasSavedMusic(true);
-                setMusicName(savedData.name || "나만의 음악");
+            // 저장된 설정 불러오기
+            localforage.getItem('savedBgmData').then((savedData) => {
+              if (savedData) {
+                if (savedData.type === 'file' && savedData.blob) {
+                  const fileUrl = URL.createObjectURL(savedData.blob);
+                  setAudioSrc(fileUrl);
+                  setMusicMode('file');
+                  setMusicName(savedData.name || "나만의 음악");
+                } else if (savedData.type === 'youtube' && savedData.id) {
+                  setYoutubeId(savedData.id);
+                  setMusicMode('youtube');
+                  setMusicName("유튜브 배경음악");
+                }
               }
             }).catch(err => console.error("음악 불러오기 실패:", err));
+
+            // 유튜브 API 스크립트 로드
+            if (!window.YT) {
+                const tag = document.createElement('script');
+                tag.src = "https://www.youtube.com/iframe_api";
+                const firstScriptTag = document.getElementsByTagName('script')[0];
+                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                window.onYouTubeIframeAPIReady = () => {
+                    setYtApiReady(true);
+                };
+            } else {
+                setYtApiReady(true);
+            }
           }, []);
 
-          // 음원 파일 업로드 및 브라우저에 저장 핸들러
+          // 2. 유튜브 플레이어 초기화 (API가 준비되었고, 유튜브 ID가 있을 때)
+          useEffect(() => {
+            if (musicMode === 'youtube' && ytApiReady && youtubeId) {
+                if (ytPlayerRef.current) {
+                    ytPlayerRef.current.loadVideoById(youtubeId);
+                } else {
+                    ytPlayerRef.current = new window.YT.Player('youtube-player', {
+                        height: '10',
+                        width: '10',
+                        videoId: youtubeId,
+                        playerVars: {
+                            'autoplay': 0, 'controls': 0, 'loop': 1, 'playlist': youtubeId
+                        },
+                        events: {
+                            'onReady': (event) => {
+                                // 플레이어 준비 완료
+                            }
+                        }
+                    });
+                }
+            }
+          }, [musicMode, ytApiReady, youtubeId]);
+
+          // MP3 파일 업로드
           const handleFileUpload = (e) => {
             const file = e.target.files[0];
             if (file) {
-              // 브라우저 저장소(IndexedDB)에 파일 보관
-              localforage.setItem('savedBgm', { blob: file, name: file.name }).then(() => {
+              localforage.setItem('savedBgmData', { type: 'file', blob: file, name: file.name }).then(() => {
                 const fileUrl = URL.createObjectURL(file);
                 setAudioSrc(fileUrl);
-                setHasSavedMusic(true);
+                setMusicMode('file');
                 setMusicName(file.name);
-              }).catch(err => {
-                console.error("음악 저장 실패:", err);
-                // 저장에 실패하더라도 이번 한 번은 재생될 수 있게 처리
-                const fileUrl = URL.createObjectURL(file);
-                setAudioSrc(fileUrl);
-                setHasSavedMusic(true);
-                setMusicName(file.name);
+                if (ytPlayerRef.current && ytPlayerRef.current.pauseVideo) ytPlayerRef.current.pauseVideo();
               });
             }
           };
 
-          // 저장된 음악 삭제하고 기본 파일(bgm.mp3)로 되돌리기
+          // 유튜브 링크 등록
+          const handleYoutubeSubmit = () => {
+            const extractedId = extractYouTubeId(youtubeUrlInput);
+            if (extractedId) {
+                localforage.setItem('savedBgmData', { type: 'youtube', id: extractedId }).then(() => {
+                    setYoutubeId(extractedId);
+                    setMusicMode('youtube');
+                    setMusicName("유튜브 배경음악");
+                    setYoutubeUrlInput("");
+                    if (audioRef.current) audioRef.current.pause();
+                });
+            } else {
+                alert("올바른 유튜브 영상 링크를 입력해주세요.");
+            }
+          };
+
+          // 음악 초기화 (기본 bgm.mp3)
           const handleResetMusic = () => {
-            localforage.removeItem('savedBgm').then(() => {
+            localforage.removeItem('savedBgmData').then(() => {
               setAudioSrc("bgm.mp3");
-              setHasSavedMusic(false);
+              setMusicMode('default');
               setMusicName("");
+              setYoutubeId("");
+              if (ytPlayerRef.current && ytPlayerRef.current.pauseVideo) ytPlayerRef.current.pauseVideo();
             });
           };
 
-          // 화면 꺼짐 방지 및 전체화면 이벤트
+          // 화면 꺼짐 방지
+          useEffect(() => {
+            const requestWakeLock = async () => {
+              if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
+            };
+            const releaseWakeLock = async () => {
+              if (wakeLockRef.current) { await wakeLockRef.current.release(); wakeLockRef.current = null; }
+            };
+            if (started && !isPaused) requestWakeLock(); else releaseWakeLock();
+            return () => { releaseWakeLock(); };
+          }, [started, isPaused]);
+
+          // 타이머 & 전체화면 로직
           useEffect(() => {
             const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
             document.addEventListener('fullscreenchange', handleFullscreenChange);
-
             return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
           }, []);
 
           useEffect(() => {
-            const requestWakeLock = async () => {
-              try {
-                if ('wakeLock' in navigator) {
-                  wakeLockRef.current = await navigator.wakeLock.request('screen');
-                }
-              } catch (err) {
-                console.log("Wake Lock error:", err);
-              }
-            };
-
-            const releaseWakeLock = async () => {
-              if (wakeLockRef.current !== null) {
-                await wakeLockRef.current.release();
-                wakeLockRef.current = null;
-              }
-            };
-
-            if (started && !isPaused) {
-              requestWakeLock();
-            } else {
-              releaseWakeLock();
-            }
-
-            return () => { releaseWakeLock(); };
-          }, [started, isPaused]);
-
-          // 타이머 로직
-          useEffect(() => {
             if (!started || isPaused || currentStep >= steps.length) return;
-
             const timer = setInterval(() => {
               setTimeLeft(prev => {
                 if (prev <= 1) {
@@ -172,31 +215,40 @@
                 return prev - 1;
               });
             }, 1000);
-
             return () => clearInterval(timer);
           }, [started, isPaused, currentStep]);
 
-          // 배경음악 재생/정지 제어 로직
+          // === 음악 재생/정지 동기화 ===
           useEffect(() => {
-            if (!audioRef.current) return;
-
-            if (started && !isPaused && currentStep < steps.length) {
-              audioRef.current.play().catch(e => console.error("음악 재생 실패:", e));
-            } else {
-              audioRef.current.pause();
+            const isPlayingCondition = started && !isPaused && currentStep < steps.length;
+            
+            // MP3 파일인 경우
+            if (musicMode === 'default' || musicMode === 'file') {
+                if (audioRef.current) {
+                    if (isPlayingCondition) audioRef.current.play().catch(() => {});
+                    else audioRef.current.pause();
+                }
+            } 
+            // 유튜브인 경우
+            else if (musicMode === 'youtube' && ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
+                if (isPlayingCondition) {
+                    // 마지막 페이지에서 다시하기를 누른 경우 처음부터
+                    if (ytPlayerRef.current.getPlayerState() === 0) ytPlayerRef.current.seekTo(0);
+                    ytPlayerRef.current.playVideo();
+                } else {
+                    ytPlayerRef.current.pauseVideo();
+                }
             }
-          }, [started, isPaused, currentStep]);
+          }, [started, isPaused, currentStep, musicMode]);
 
+          // 컨트롤 핸들러
           const handleNext = () => {
             if (currentStep < steps.length) {
               const nextStep = currentStep + 1;
               setCurrentStep(nextStep);
-              if (nextStep < steps.length) {
-                setTimeLeft(steps[nextStep].time);
-              }
+              if (nextStep < steps.length) setTimeLeft(steps[nextStep].time);
             }
           };
-
           const handlePrev = () => {
             if (currentStep > 0) {
               const prevStep = currentStep - 1;
@@ -204,23 +256,18 @@
               setTimeLeft(steps[prevStep].time);
             }
           };
-
           const handleRestart = () => {
             setStarted(false);
             setCurrentStep(0);
             setTimeLeft(steps[0].time);
             setIsPaused(false);
-            if(audioRef.current) {
-               audioRef.current.currentTime = 0;
-            }
+            if(audioRef.current) audioRef.current.currentTime = 0;
+            if (ytPlayerRef.current && typeof ytPlayerRef.current.seekTo === 'function') ytPlayerRef.current.seekTo(0);
           };
 
           const toggleFullscreen = () => {
-            if (!document.fullscreenElement) {
-              document.documentElement.requestFullscreen().catch(err => console.log(err));
-            } else {
-              if (document.exitFullscreen) document.exitFullscreen();
-            }
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+            else if (document.exitFullscreen) document.exitFullscreen();
           };
 
           const formatTime = (seconds) => {
@@ -233,145 +280,123 @@
 
           return (
             <div className={`min-h-screen flex flex-col items-center justify-center transition-colors duration-1000 ${currentBgColor} p-4 relative`}>
-              <button 
-                onClick={toggleFullscreen}
-                className="absolute top-4 right-4 p-3 bg-white/50 hover:bg-white/80 rounded-full shadow-sm transition-all z-50"
-                title="전체화면"
-              >
+              <button onClick={toggleFullscreen} className="absolute top-4 right-4 p-3 bg-white/50 hover:bg-white/80 rounded-full shadow-sm transition-all z-50">
                 {isFullscreen ? <Minimize className="w-6 h-6 text-gray-700" /> : <Maximize className="w-6 h-6 text-gray-700" />}
               </button>
 
+              {/* 보이지 않는 오디오 / 유튜브 플레이어 */}
               <audio ref={audioRef} src={audioSrc} loop />
+              <div id="youtube-player-container"><div id="youtube-player"></div></div>
 
               {!started && (
-                <div className="bg-white/90 backdrop-blur-md rounded-[3rem] p-12 shadow-2xl text-center max-w-2xl w-full border-4 border-white">
+                <div className="bg-white/90 backdrop-blur-md rounded-[3rem] p-8 md:p-12 shadow-2xl text-center max-w-2xl w-full border-4 border-white mt-10 md:mt-0">
                   <div className="flex justify-center mb-6">
                     <Star className="w-20 h-20 text-yellow-400 fill-yellow-400 animate-pulse" />
                   </div>
-                  <h1 className="text-5xl md:text-6xl text-gray-800 mb-6 drop-shadow-sm">신나는 청소 시간!</h1>
-                  <p className="text-2xl text-gray-600 mb-10">다 함께 교실을 반짝반짝하게 만들어봐요 ✨</p>
+                  <h1 className="text-5xl md:text-6xl text-gray-800 mb-4 drop-shadow-sm">신나는 청소 시간!</h1>
+                  <p className="text-xl text-gray-600 mb-8">다 함께 교실을 반짝반짝하게 만들어봐요 ✨</p>
                   
-                  <div className="mb-10 p-6 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
-                    <p className="text-xl text-gray-600 mb-4">🎵 우리 반만의 청소 음악이 있다면?</p>
-                    <input 
-                      type="file" 
-                      accept="audio/*" 
-                      onChange={handleFileUpload} 
-                      ref={fileInputRef}
-                      className="hidden"
-                    />
+                  {/* 음악 설정 패널 */}
+                  <div className="mb-10 p-6 bg-gray-50 rounded-3xl border border-gray-200 shadow-inner text-left">
+                    <p className="text-xl text-gray-700 mb-4 text-center">🎵 우리 반 청소 음악 설정</p>
                     
-                    <button 
-                      onClick={() => { if (fileInputRef.current) fileInputRef.current.click(); }}
-                      className="flex items-center justify-center gap-2 mx-auto bg-white border-2 border-blue-400 text-blue-500 hover:bg-blue-50 py-2 px-6 rounded-full text-lg transition mb-4"
-                    >
-                      <Music className="w-6 h-6" />
-                      {hasSavedMusic ? "다른 음악으로 변경하기" : "음악 파일(MP3) 선택하기"}
-                    </button>
+                    <div className="flex flex-col gap-4">
+                        {/* 유튜브 링크 입력 */}
+                        <div className="flex gap-2">
+                            <input 
+                                type="text" 
+                                placeholder="유튜브 영상 또는 뮤직 링크 붙여넣기" 
+                                value={youtubeUrlInput}
+                                onChange={(e) => setYoutubeUrlInput(e.target.value)}
+                                className="flex-1 px-4 py-2 rounded-xl border-2 border-gray-300 focus:border-red-400 outline-none font-sans text-sm"
+                            />
+                            <button 
+                                onClick={handleYoutubeSubmit}
+                                className="bg-red-500 hover:bg-red-600 text-white px-4 rounded-xl flex items-center gap-1 transition shadow-sm whitespace-nowrap"
+                            >
+                                <YoutubeIcon className="w-5 h-5" /> 유튜브 적용
+                            </button>
+                        </div>
 
-                    {hasSavedMusic ? (
-                      <div className="flex flex-col items-center gap-2 mt-2">
-                        <p className="text-green-500 font-bold text-lg bg-green-50 px-4 py-1 rounded-full">
-                          ✅ 현재 음악: {musicName}
-                        </p>
+                        <div className="flex items-center gap-4">
+                            <div className="h-px bg-gray-300 flex-1"></div>
+                            <span className="text-gray-400 text-sm">또는</span>
+                            <div className="h-px bg-gray-300 flex-1"></div>
+                        </div>
+
+                        {/* MP3 파일 업로드 */}
+                        <input type="file" accept="audio/*" onChange={handleFileUpload} ref={fileInputRef} className="hidden" />
                         <button 
-                          onClick={handleResetMusic} 
-                          className="text-sm text-gray-400 underline hover:text-gray-600 mt-1"
+                            onClick={() => { if (fileInputRef.current) fileInputRef.current.click(); }}
+                            className="flex items-center justify-center gap-2 w-full bg-white border-2 border-blue-400 text-blue-500 hover:bg-blue-50 py-2 px-6 rounded-xl transition"
                         >
-                          초기화 (기본 bgm.mp3 사용)
+                            <Music className="w-5 h-5" /> MP3 파일(내 컴퓨터) 선택하기
                         </button>
-                      </div>
-                    ) : (
-                      <p className="text-gray-400 text-sm mt-2">선택하지 않으면 선생님 폴더의 bgm.mp3가 재생됩니다.</p>
-                    )}
+                    </div>
+
+                    {/* 현재 음악 상태 표시 */}
+                    <div className="mt-6 text-center">
+                        {musicMode !== 'default' ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <p className="text-green-600 font-bold text-lg bg-green-100 px-4 py-1.5 rounded-full inline-flex items-center gap-2">
+                                {musicMode === 'youtube' ? <YoutubeIcon className="w-5 h-5 text-red-500"/> : <Music className="w-5 h-5"/>}
+                                현재 음악: {musicName}
+                            </p>
+                            <button onClick={handleResetMusic} className="text-sm text-gray-500 underline hover:text-gray-700 mt-2">
+                              초기화 (선생님 기본 배경음 사용)
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-gray-400 text-sm">설정하지 않으면 선생님의 기본 배경음이 재생됩니다.</p>
+                        )}
+                    </div>
                   </div>
 
-                  <button 
-                    onClick={() => setStarted(true)}
-                    className="bg-blue-400 hover:bg-blue-500 text-white text-3xl py-5 px-12 rounded-full shadow-lg transform transition hover:scale-105 hover:-translate-y-1 w-full"
-                  >
+                  <button onClick={() => setStarted(true)} className="bg-blue-400 hover:bg-blue-500 text-white text-3xl py-5 px-12 rounded-full shadow-lg transform transition hover:scale-105 hover:-translate-y-1 w-full">
                     청소 시작하기 🚀
                   </button>
                 </div>
               )}
 
+              {/* 진행 화면 */}
               {started && currentStep < steps.length && (
                 <div className="bg-white/90 backdrop-blur-md rounded-[3rem] p-8 md:p-12 shadow-2xl text-center max-w-3xl w-full border-4 border-white relative overflow-hidden">
                   <div className="absolute top-0 left-0 h-3 bg-gray-100 w-full">
-                    <div 
-                      className="h-full bg-blue-400 transition-all duration-1000"
-                      style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
-                    ></div>
+                    <div className="h-full bg-blue-400 transition-all duration-1000" style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}></div>
                   </div>
-
                   <div className="mt-4 mb-4">
-                    <span className="bg-white text-blue-500 px-6 py-2 rounded-full text-2xl font-bold shadow-sm border-2 border-blue-100">
-                      {currentStep + 1} / {steps.length} 단계
-                    </span>
+                    <span className="bg-white text-blue-500 px-6 py-2 rounded-full text-2xl font-bold shadow-sm border-2 border-blue-100">{currentStep + 1} / {steps.length} 단계</span>
                   </div>
-
-                  <h2 className="text-4xl md:text-5xl text-gray-800 mt-8 mb-4 leading-tight">
-                    {steps[currentStep].title}
-                  </h2>
-                  <div className="text-7xl mb-8 animate-bounce">
-                    {steps[currentStep].emoji}
-                  </div>
-
+                  <h2 className="text-4xl md:text-5xl text-gray-800 mt-8 mb-4 leading-tight">{steps[currentStep].title}</h2>
+                  <div className="text-7xl mb-8 animate-bounce">{steps[currentStep].emoji}</div>
                   <div className="my-8 relative">
-                    <div className="text-8xl md:text-9xl font-bold text-gray-700 drop-shadow-md tracking-wider">
-                      {formatTime(timeLeft)}
-                    </div>
+                    <div className="text-8xl md:text-9xl font-bold text-gray-700 drop-shadow-md tracking-wider">{formatTime(timeLeft)}</div>
                     <div className="w-full bg-gray-100 h-4 rounded-full mt-8 overflow-hidden">
-                      <div 
-                        className="h-full bg-pink-400 transition-all duration-1000 rounded-full"
-                        style={{ width: `${(timeLeft / steps[currentStep].time) * 100}%` }}
-                      ></div>
+                      <div className="h-full bg-pink-400 transition-all duration-1000 rounded-full" style={{ width: `${(timeLeft / steps[currentStep].time) * 100}%` }}></div>
                     </div>
                   </div>
-
                   <div className="flex items-center justify-center gap-6 mt-10">
-                    <button 
-                      onClick={handlePrev}
-                      disabled={currentStep === 0}
-                      className={`p-4 rounded-full transition-transform hover:scale-110 shadow-md ${currentStep === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-                    >
+                    <button onClick={handlePrev} disabled={currentStep === 0} className={`p-4 rounded-full transition-transform hover:scale-110 shadow-md ${currentStep === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>
                       <SkipBack className="w-8 h-8 md:w-10 md:h-10" />
                     </button>
-
-                    <button 
-                      onClick={() => setIsPaused(!isPaused)}
-                      className="bg-yellow-400 hover:bg-yellow-500 text-white p-6 rounded-full shadow-lg transition-transform hover:scale-110"
-                    >
+                    <button onClick={() => setIsPaused(!isPaused)} className="bg-yellow-400 hover:bg-yellow-500 text-white p-6 rounded-full shadow-lg transition-transform hover:scale-110">
                       {isPaused ? <Play className="w-12 h-12 md:w-14 md:h-14 fill-white" /> : <Pause className="w-12 h-12 md:w-14 md:h-14 fill-white" />}
                     </button>
-
-                    <button 
-                      onClick={handleNext}
-                      className="p-4 rounded-full bg-white text-gray-700 hover:bg-gray-50 shadow-md transition-transform hover:scale-110"
-                    >
+                    <button onClick={handleNext} className="p-4 rounded-full bg-white text-gray-700 hover:bg-gray-50 shadow-md transition-transform hover:scale-110">
                       <SkipForward className="w-8 h-8 md:w-10 md:h-10" />
                     </button>
                   </div>
                 </div>
               )}
 
+              {/* 완료 화면 */}
               {started && currentStep >= steps.length && (
                 <div className="bg-white/95 backdrop-blur-md rounded-[3rem] p-12 shadow-2xl text-center max-w-2xl w-full border-4 border-green-200 animate-fade-in-up">
-                  <div className="flex justify-center mb-8">
-                    <CheckCircle2 className="w-24 h-24 text-green-500" />
-                  </div>
-                  <h1 className="text-4xl md:text-5xl text-green-600 mb-8 leading-snug">
-                    우리 반을 깨끗하게 해줘서<br/>고마워! 💖
-                  </h1>
-                  <p className="text-3xl text-gray-700 mb-12 bg-green-50 p-6 rounded-2xl">
-                    점심 맛있게 먹고<br/>5교시 수업을 준비해주세요! 🍱
-                  </p>
-                  <button 
-                    onClick={handleRestart}
-                    className="flex items-center justify-center gap-3 bg-gray-800 hover:bg-gray-900 text-white text-2xl py-4 px-10 rounded-full mx-auto shadow-xl transition transform hover:scale-105"
-                  >
-                    <RefreshCw className="w-7 h-7" />
-                    처음부터 다시 하기
+                  <div className="flex justify-center mb-8"><CheckCircle2 className="w-24 h-24 text-green-500" /></div>
+                  <h1 className="text-4xl md:text-5xl text-green-600 mb-8 leading-snug">우리 반을 깨끗하게 해줘서<br/>고마워! 💖</h1>
+                  <p className="text-3xl text-gray-700 mb-12 bg-green-50 p-6 rounded-2xl">점심 맛있게 먹고<br/>5교시 수업을 준비해주세요! 🍱</p>
+                  <button onClick={handleRestart} className="flex items-center justify-center gap-3 bg-gray-800 hover:bg-gray-900 text-white text-2xl py-4 px-10 rounded-full mx-auto shadow-xl transition transform hover:scale-105">
+                    <RefreshCw className="w-7 h-7" /> 처음부터 다시 하기
                   </button>
                 </div>
               )}
@@ -379,7 +404,6 @@
           );
         }
 
-        // React 앱을 화면에 그리기
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
