@@ -27,8 +27,18 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
-        /* 유튜브 플레이어 숨김 */
-        #youtube-player-container { position: absolute; width: 0; height: 0; overflow: hidden; opacity: 0; pointer-events: none; }
+        
+        /* 유튜브 플레이어 숨김 - 유튜브 정책상 크기가 0이거나 display:none이면 재생을 막으므로 
+           크기를 할당한 뒤 화면 밖으로 멀리 보내버립니다. */
+        #youtube-player-container { 
+            position: absolute; 
+            top: -9999px; 
+            left: -9999px; 
+            width: 300px; 
+            height: 300px; 
+            opacity: 0.01;
+            overflow: hidden;
+        }
     </style>
 </head>
 <body>
@@ -61,9 +71,9 @@
 
         const bgColors = ['bg-pink-100', 'bg-orange-100', 'bg-yellow-100', 'bg-green-100', 'bg-blue-100', 'bg-purple-100'];
 
-        // 유튜브 URL에서 ID 추출 정규식
+        // 유튜브 URL에서 ID 추출 정규식 (shorts 포함)
         function extractYouTubeId(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
         }
@@ -87,10 +97,17 @@
           const wakeLockRef = useRef(null);
           const fileInputRef = useRef(null);
           const ytPlayerRef = useRef(null);
+          
+          // 콜백 함수에서 최신 상태를 참조하기 위한 Ref
+          const playbackStateRef = useRef({ started: false, isPaused: false, currentStep: 0 });
+
+          // 상태가 변할 때마다 Ref 업데이트
+          useEffect(() => {
+            playbackStateRef.current = { started, isPaused, currentStep };
+          }, [started, isPaused, currentStep]);
 
           // 1. 초기 로딩 시: 저장된 음악 설정 불러오기 및 유튜브 API 로드
           useEffect(() => {
-            // 저장된 설정 불러오기
             localforage.getItem('savedBgmData').then((savedData) => {
               if (savedData) {
                 if (savedData.type === 'file' && savedData.blob) {
@@ -106,7 +123,6 @@
               }
             }).catch(err => console.error("음악 불러오기 실패:", err));
 
-            // 유튜브 API 스크립트 로드
             if (!window.YT) {
                 const tag = document.createElement('script');
                 tag.src = "https://www.youtube.com/iframe_api";
@@ -120,22 +136,51 @@
             }
           }, []);
 
+          // 음악 초기화 함수 (에러 발생 시 접근 위해 상단 배치)
+          const handleResetMusic = () => {
+            localforage.removeItem('savedBgmData').then(() => {
+              setAudioSrc("bgm.mp3");
+              setMusicMode('default');
+              setMusicName("");
+              setYoutubeId("");
+              if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
+                  ytPlayerRef.current.pauseVideo();
+              }
+            });
+          };
+
           // 2. 유튜브 플레이어 초기화 (API가 준비되었고, 유튜브 ID가 있을 때)
           useEffect(() => {
             if (musicMode === 'youtube' && ytApiReady && youtubeId) {
-                if (ytPlayerRef.current) {
+                if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
                     ytPlayerRef.current.loadVideoById(youtubeId);
                 } else {
                     ytPlayerRef.current = new window.YT.Player('youtube-player', {
-                        height: '10',
-                        width: '10',
+                        height: '300',
+                        width: '300',
                         videoId: youtubeId,
                         playerVars: {
-                            'autoplay': 0, 'controls': 0, 'loop': 1, 'playlist': youtubeId
+                            'autoplay': 0, 
+                            'controls': 0, 
+                            'loop': 1, 
+                            'playlist': youtubeId,
+                            'origin': window.location.origin
                         },
                         events: {
-                            'onReady': (event) => {
-                                // 플레이어 준비 완료
+                            'onStateChange': (event) => {
+                                const { started: currStarted, isPaused: currPaused, currentStep: currStep } = playbackStateRef.current;
+                                // event.data === 0 (동영상 종료)
+                                if (event.data === 0 && currStarted && !currPaused && currStep < steps.length) {
+                                    event.target.seekTo(0);
+                                    event.target.playVideo();
+                                }
+                            },
+                            'onError': (event) => {
+                                // 101, 150 코드는 저작권자가 타 사이트에서의 임베드(재생)를 막은 영상입니다.
+                                if (event.data === 150 || event.data === 101) {
+                                    alert("이 영상은 저작권 정책으로 인해 외부에서 재생할 수 없습니다. 다른 유튜브 곡이나 MP3를 선택해주세요!");
+                                    handleResetMusic();
+                                }
                             }
                         }
                     });
@@ -152,7 +197,7 @@
                 setAudioSrc(fileUrl);
                 setMusicMode('file');
                 setMusicName(file.name);
-                if (ytPlayerRef.current && ytPlayerRef.current.pauseVideo) ytPlayerRef.current.pauseVideo();
+                if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') ytPlayerRef.current.pauseVideo();
               });
             }
           };
@@ -171,17 +216,6 @@
             } else {
                 alert("올바른 유튜브 영상 링크를 입력해주세요.");
             }
-          };
-
-          // 음악 초기화 (기본 bgm.mp3)
-          const handleResetMusic = () => {
-            localforage.removeItem('savedBgmData').then(() => {
-              setAudioSrc("bgm.mp3");
-              setMusicMode('default');
-              setMusicName("");
-              setYoutubeId("");
-              if (ytPlayerRef.current && ytPlayerRef.current.pauseVideo) ytPlayerRef.current.pauseVideo();
-            });
           };
 
           // 화면 꺼짐 방지
@@ -218,25 +252,35 @@
             return () => clearInterval(timer);
           }, [started, isPaused, currentStep]);
 
-          // === 음악 재생/정지 동기화 ===
+          // === 음악 재생/정지 동기화 (끊김 방지 최적화) ===
           useEffect(() => {
             const isPlayingCondition = started && !isPaused && currentStep < steps.length;
             
             // MP3 파일인 경우
             if (musicMode === 'default' || musicMode === 'file') {
                 if (audioRef.current) {
-                    if (isPlayingCondition) audioRef.current.play().catch(() => {});
-                    else audioRef.current.pause();
+                    if (isPlayingCondition) {
+                        // 이미 재생 중이 아닐 때만 재생 명령
+                        if (audioRef.current.paused) audioRef.current.play().catch(() => {});
+                    } else {
+                        // 이미 정지 중이 아닐 때만 정지 명령
+                        if (!audioRef.current.paused) audioRef.current.pause();
+                    }
                 }
             } 
             // 유튜브인 경우
-            else if (musicMode === 'youtube' && ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
-                if (isPlayingCondition) {
-                    // 마지막 페이지에서 다시하기를 누른 경우 처음부터
-                    if (ytPlayerRef.current.getPlayerState() === 0) ytPlayerRef.current.seekTo(0);
-                    ytPlayerRef.current.playVideo();
-                } else {
-                    ytPlayerRef.current.pauseVideo();
+            else if (musicMode === 'youtube' && ytPlayerRef.current && typeof ytPlayerRef.current.getPlayerState === 'function') {
+                try {
+                    const state = ytPlayerRef.current.getPlayerState();
+                    if (isPlayingCondition) {
+                        // 0: 끝남, 1: 재생중, 2: 일시중지, 3: 버퍼링, 5: 동영상 신호
+                        if (state === 0) ytPlayerRef.current.seekTo(0);
+                        if (state !== 1 && state !== 3) ytPlayerRef.current.playVideo();
+                    } else {
+                        if (state === 1 || state === 3) ytPlayerRef.current.pauseVideo();
+                    }
+                } catch (e) {
+                    console.error("유튜브 재생 동기화 오류:", e);
                 }
             }
           }, [started, isPaused, currentStep, musicMode]);
