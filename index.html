@@ -59,6 +59,8 @@
         const Minimize = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>;
         const Music = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>;
         const YoutubeIcon = ({ className }) => <svg viewBox="0 0 24 24" fill="currentColor" className={className}><path d="M21.582 6.186a2.618 2.618 0 0 0-1.841-1.854C18.118 3.9 12 3.9 12 3.9s-6.118 0-7.741.432a2.618 2.618 0 0 0-1.841 1.854C2 7.828 2 12 2 12s0 4.172.418 5.814a2.618 2.618 0 0 0 1.841 1.854C5.882 20.1 12 20.1 12 20.1s6.118 0 7.741-.432a2.618 2.618 0 0 0 1.841-1.854C22 16.172 22 12 22 12s0-4.172-.418-5.814zM9.99 15.45V8.55L15.993 12 9.99 15.45z"/></svg>;
+        const SearchIcon = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
+        const HomeIcon = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
 
         const steps = [
           { title: "책상 위, 서랍 정리하기", time: 50, emoji: "📚✨" },
@@ -71,7 +73,7 @@
 
         const bgColors = ['bg-pink-100', 'bg-orange-100', 'bg-yellow-100', 'bg-green-100', 'bg-blue-100', 'bg-purple-100'];
 
-        // 유튜브 URL에서 ID 추출 정규식 (shorts 포함)
+        // 유튜브 URL에서 ID 추출 정규식
         function extractYouTubeId(url) {
             const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
             const match = url.match(regExp);
@@ -84,27 +86,73 @@
           const [timeLeft, setTimeLeft] = useState(steps[0].time);
           const [isPaused, setIsPaused] = useState(false);
           const [isFullscreen, setIsFullscreen] = useState(false);
+          const [userInteracted, setUserInteracted] = useState(false);
           
-          // 음악 관련 상태 ('file', 'youtube', 'default')
+          // 실시간 날짜/시간 상태
+          const [currentTime, setCurrentTime] = useState(new Date());
+
+          // 음악 관련 상태
           const [musicMode, setMusicMode] = useState('default');
           const [audioSrc, setAudioSrc] = useState("bgm.mp3");
           const [musicName, setMusicName] = useState("");
-          const [youtubeUrlInput, setYoutubeUrlInput] = useState("");
+          const [youtubeSearchInput, setYoutubeSearchInput] = useState("");
           const [youtubeId, setYoutubeId] = useState("");
           const [ytApiReady, setYtApiReady] = useState(false);
+          
+          // 검색 안내 관련 상태
+          const [showSearchGuide, setShowSearchGuide] = useState(false);
           
           const audioRef = useRef(null);
           const wakeLockRef = useRef(null);
           const fileInputRef = useRef(null);
           const ytPlayerRef = useRef(null);
           
-          // 콜백 함수에서 최신 상태를 참조하기 위한 Ref
-          const playbackStateRef = useRef({ started: false, isPaused: false, currentStep: 0 });
+          const playbackStateRef = useRef({ started: false, isPaused: false, currentStep: 0, userInteracted: false });
 
-          // 상태가 변할 때마다 Ref 업데이트
           useEffect(() => {
-            playbackStateRef.current = { started, isPaused, currentStep };
-          }, [started, isPaused, currentStep]);
+            playbackStateRef.current = { started, isPaused, currentStep, userInteracted };
+          }, [started, isPaused, currentStep, userInteracted]);
+
+          // 현재 시각 업데이트 (1초마다)
+          useEffect(() => {
+            const clockTimer = setInterval(() => setCurrentTime(new Date()), 1000);
+            return () => clearInterval(clockTimer);
+          }, []);
+
+          // 화면 클릭 감지 (자동 재생 권한 획득용)
+          useEffect(() => {
+            const handleInteraction = () => {
+                setUserInteracted(true);
+                window.removeEventListener('click', handleInteraction);
+                window.removeEventListener('touchstart', handleInteraction);
+            };
+            window.addEventListener('click', handleInteraction);
+            window.addEventListener('touchstart', handleInteraction);
+
+            return () => {
+                window.removeEventListener('click', handleInteraction);
+                window.removeEventListener('touchstart', handleInteraction);
+            };
+          }, []);
+
+          // === 12시 정각 자동 시작 로직 ===
+          useEffect(() => {
+            const checkTimeInterval = setInterval(() => {
+                const now = new Date();
+                const hours = now.getHours();
+                const minutes = now.getMinutes();
+                const seconds = now.getSeconds();
+
+                if (hours === 12 && minutes === 0 && seconds === 0 && !playbackStateRef.current.started) {
+                    if (playbackStateRef.current.userInteracted) {
+                        setStarted(true);
+                    } else {
+                        alert("낮 12시가 되었습니다!\n화면을 한 번 클릭해야 청소 음악이 자동 시작됩니다.");
+                    }
+                }
+            }, 1000);
+            return () => clearInterval(checkTimeInterval);
+          }, []);
 
           // 1. 초기 로딩 시: 저장된 음악 설정 불러오기 및 유튜브 API 로드
           useEffect(() => {
@@ -118,7 +166,7 @@
                 } else if (savedData.type === 'youtube' && savedData.id) {
                   setYoutubeId(savedData.id);
                   setMusicMode('youtube');
-                  setMusicName("유튜브 배경음악");
+                  setMusicName(savedData.title || "유튜브 배경음악");
                 }
               }
             }).catch(err => console.error("음악 불러오기 실패:", err));
@@ -136,7 +184,7 @@
             }
           }, []);
 
-          // 음악 초기화 함수 (에러 발생 시 접근 위해 상단 배치)
+          // 음악 초기화 함수
           const handleResetMusic = () => {
             localforage.removeItem('savedBgmData').then(() => {
               setAudioSrc("bgm.mp3");
@@ -149,7 +197,7 @@
             });
           };
 
-          // 2. 유튜브 플레이어 초기화 (API가 준비되었고, 유튜브 ID가 있을 때)
+          // 2. 유튜브 플레이어 초기화
           useEffect(() => {
             if (musicMode === 'youtube' && ytApiReady && youtubeId) {
                 if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
@@ -160,25 +208,19 @@
                         width: '300',
                         videoId: youtubeId,
                         playerVars: {
-                            'autoplay': 0, 
-                            'controls': 0, 
-                            'loop': 1, 
-                            'playlist': youtubeId,
-                            'origin': window.location.origin
+                            'autoplay': 0, 'controls': 0, 'loop': 1, 'playlist': youtubeId, 'origin': window.location.origin
                         },
                         events: {
                             'onStateChange': (event) => {
                                 const { started: currStarted, isPaused: currPaused, currentStep: currStep } = playbackStateRef.current;
-                                // event.data === 0 (동영상 종료)
                                 if (event.data === 0 && currStarted && !currPaused && currStep < steps.length) {
                                     event.target.seekTo(0);
                                     event.target.playVideo();
                                 }
                             },
                             'onError': (event) => {
-                                // 101, 150 코드는 저작권자가 타 사이트에서의 임베드(재생)를 막은 영상입니다.
                                 if (event.data === 150 || event.data === 101) {
-                                    alert("이 영상은 저작권 정책으로 인해 외부에서 재생할 수 없습니다. 다른 유튜브 곡이나 MP3를 선택해주세요!");
+                                    alert("이 영상은 저작권 정책으로 인해 외부에서 재생할 수 없습니다. 검색을 통해 다른 곡을 찾아주세요!");
                                     handleResetMusic();
                                 }
                             }
@@ -202,19 +244,28 @@
             }
           };
 
-          // 유튜브 링크 등록
+          // 선택한 유튜브 곡 적용 함수
+          const applyYoutubeMusic = (id, title) => {
+            localforage.setItem('savedBgmData', { type: 'youtube', id: id, title: title }).then(() => {
+                setYoutubeId(id);
+                setMusicMode('youtube');
+                setMusicName(title);
+                setYoutubeSearchInput("");
+                setShowSearchGuide(false);
+                if (audioRef.current) audioRef.current.pause();
+            });
+          };
+
+          // 유튜브 검색 및 링크 처리
           const handleYoutubeSubmit = () => {
-            const extractedId = extractYouTubeId(youtubeUrlInput);
+            if (!youtubeSearchInput.trim()) return;
+            const extractedId = extractYouTubeId(youtubeSearchInput);
             if (extractedId) {
-                localforage.setItem('savedBgmData', { type: 'youtube', id: extractedId }).then(() => {
-                    setYoutubeId(extractedId);
-                    setMusicMode('youtube');
-                    setMusicName("유튜브 배경음악");
-                    setYoutubeUrlInput("");
-                    if (audioRef.current) audioRef.current.pause();
-                });
+                applyYoutubeMusic(extractedId, "선택한 유튜브 배경음악");
             } else {
-                alert("올바른 유튜브 영상 링크를 입력해주세요.");
+                // 링크가 아닌 일반 검색어일 경우 새 창에서 유튜브 검색 열기
+                window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(youtubeSearchInput)}`, '_blank');
+                setShowSearchGuide(true);
             }
           };
 
@@ -252,40 +303,31 @@
             return () => clearInterval(timer);
           }, [started, isPaused, currentStep]);
 
-          // === 음악 재생/정지 동기화 (끊김 방지 최적화) ===
+          // 음악 재생/정지 동기화
           useEffect(() => {
             const isPlayingCondition = started && !isPaused && currentStep < steps.length;
-            
-            // MP3 파일인 경우
             if (musicMode === 'default' || musicMode === 'file') {
                 if (audioRef.current) {
                     if (isPlayingCondition) {
-                        // 이미 재생 중이 아닐 때만 재생 명령
                         if (audioRef.current.paused) audioRef.current.play().catch(() => {});
                     } else {
-                        // 이미 정지 중이 아닐 때만 정지 명령
                         if (!audioRef.current.paused) audioRef.current.pause();
                     }
                 }
             } 
-            // 유튜브인 경우
             else if (musicMode === 'youtube' && ytPlayerRef.current && typeof ytPlayerRef.current.getPlayerState === 'function') {
                 try {
                     const state = ytPlayerRef.current.getPlayerState();
                     if (isPlayingCondition) {
-                        // 0: 끝남, 1: 재생중, 2: 일시중지, 3: 버퍼링, 5: 동영상 신호
                         if (state === 0) ytPlayerRef.current.seekTo(0);
                         if (state !== 1 && state !== 3) ytPlayerRef.current.playVideo();
                     } else {
                         if (state === 1 || state === 3) ytPlayerRef.current.pauseVideo();
                     }
-                } catch (e) {
-                    console.error("유튜브 재생 동기화 오류:", e);
-                }
+                } catch (e) {}
             }
           }, [started, isPaused, currentStep, musicMode]);
 
-          // 컨트롤 핸들러
           const handleNext = () => {
             if (currentStep < steps.length) {
               const nextStep = currentStep + 1;
@@ -300,6 +342,8 @@
               setTimeLeft(steps[prevStep].time);
             }
           };
+          
+          // 처음(홈)으로 되돌아가기
           const handleRestart = () => {
             setStarted(false);
             setCurrentStep(0);
@@ -320,20 +364,56 @@
             return `${m}:${s < 10 ? '0' : ''}${s}`;
           };
 
+          // 시계 표시용 문자열 생성
+          const daysOfWeek = ['일', '월', '화', '수', '목', '금', '토'];
+          const dateStr = `${currentTime.getFullYear()}년 ${currentTime.getMonth() + 1}월 ${currentTime.getDate()}일 (${daysOfWeek[currentTime.getDay()]}요일)`;
+          const timeStr = currentTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
           const currentBgColor = currentStep < steps.length ? bgColors[currentStep % bgColors.length] : 'bg-green-100';
 
           return (
             <div className={`min-h-screen flex flex-col items-center justify-center transition-colors duration-1000 ${currentBgColor} p-4 relative`}>
-              <button onClick={toggleFullscreen} className="absolute top-4 right-4 p-3 bg-white/50 hover:bg-white/80 rounded-full shadow-sm transition-all z-50">
-                {isFullscreen ? <Minimize className="w-6 h-6 text-gray-700" /> : <Maximize className="w-6 h-6 text-gray-700" />}
-              </button>
+              
+              {/* 12시 자동 시작 안내 띠 */}
+              {!started && !userInteracted && (
+                <div className="fixed top-0 left-0 w-full bg-red-500 text-white text-center py-2 z-[100] text-sm md:text-base animate-pulse cursor-pointer shadow-md">
+                    ⚠️ 12시 자동 시작을 위해 화면 아무 곳이나 한 번 클릭해주세요!
+                </div>
+              )}
+
+              {/* 좌측 상단: 현재 시계 */}
+              <div className="absolute top-4 left-4 md:top-6 md:left-6 bg-white/60 backdrop-blur-md px-4 py-2 rounded-2xl shadow-sm text-gray-700 text-center z-50">
+                  <div className="text-xs md:text-sm text-gray-500">{dateStr}</div>
+                  <div className="text-lg md:text-2xl font-bold">{timeStr}</div>
+              </div>
+
+              {/* 우측 상단: 컨트롤 버튼 영역 */}
+              <div className="absolute top-4 right-4 md:top-6 md:right-6 flex items-center gap-3 z-50">
+                  {started && (
+                      <button 
+                          onClick={handleRestart} 
+                          className="p-3 bg-white/60 hover:bg-white/90 rounded-full shadow-sm transition-all"
+                          title="홈(처음)으로"
+                      >
+                          <HomeIcon className="w-6 h-6 text-gray-700" />
+                      </button>
+                  )}
+                  <button 
+                      onClick={toggleFullscreen} 
+                      className="p-3 bg-white/60 hover:bg-white/90 rounded-full shadow-sm transition-all"
+                      title="전체화면"
+                  >
+                      {isFullscreen ? <Minimize className="w-6 h-6 text-gray-700" /> : <Maximize className="w-6 h-6 text-gray-700" />}
+                  </button>
+              </div>
 
               {/* 보이지 않는 오디오 / 유튜브 플레이어 */}
               <audio ref={audioRef} src={audioSrc} loop />
               <div id="youtube-player-container"><div id="youtube-player"></div></div>
 
+              {/* --- 시작(홈) 화면 --- */}
               {!started && (
-                <div className="bg-white/90 backdrop-blur-md rounded-[3rem] p-8 md:p-12 shadow-2xl text-center max-w-2xl w-full border-4 border-white mt-10 md:mt-0">
+                <div className="bg-white/90 backdrop-blur-md rounded-[3rem] p-8 md:p-12 shadow-2xl text-center max-w-2xl w-full border-4 border-white mt-16 md:mt-0">
                   <div className="flex justify-center mb-6">
                     <Star className="w-20 h-20 text-yellow-400 fill-yellow-400 animate-pulse" />
                   </div>
@@ -345,24 +425,38 @@
                     <p className="text-xl text-gray-700 mb-4 text-center">🎵 우리 반 청소 음악 설정</p>
                     
                     <div className="flex flex-col gap-4">
-                        {/* 유튜브 링크 입력 */}
-                        <div className="flex gap-2">
-                            <input 
-                                type="text" 
-                                placeholder="유튜브 영상 또는 뮤직 링크 붙여넣기" 
-                                value={youtubeUrlInput}
-                                onChange={(e) => setYoutubeUrlInput(e.target.value)}
-                                className="flex-1 px-4 py-2 rounded-xl border-2 border-gray-300 focus:border-red-400 outline-none font-sans text-sm"
-                            />
-                            <button 
-                                onClick={handleYoutubeSubmit}
-                                className="bg-red-500 hover:bg-red-600 text-white px-4 rounded-xl flex items-center gap-1 transition shadow-sm whitespace-nowrap"
-                            >
-                                <YoutubeIcon className="w-5 h-5" /> 유튜브 적용
-                            </button>
+                        {/* 유튜브 검색 및 입력 영역 */}
+                        <div className="flex flex-col gap-2 relative">
+                            <div className="flex gap-2">
+                                <input 
+                                    type="text" 
+                                    placeholder="유튜브 링크 붙여넣기 또는 노래 제목 검색" 
+                                    value={youtubeSearchInput}
+                                    onChange={(e) => setYoutubeSearchInput(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleYoutubeSubmit()}
+                                    className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-300 focus:border-red-400 outline-none font-sans text-sm shadow-sm"
+                                />
+                                <button 
+                                    onClick={handleYoutubeSubmit}
+                                    className="bg-red-500 hover:bg-red-600 text-white px-5 rounded-xl flex items-center gap-2 transition shadow-sm whitespace-nowrap"
+                                >
+                                    <SearchIcon className="w-5 h-5" /> 검색/적용
+                                </button>
+                            </div>
+                            
+                            {/* 검색 안내 가이드 */}
+                            {showSearchGuide && (
+                                <div className="mt-2 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm animate-fade-in-up flex flex-col gap-2">
+                                    <p className="font-bold">✨ 새 창에 유튜브 검색 결과가 열렸습니다!</p>
+                                    <p>1. 열린 유튜브 창에서 원하는 곡을 클릭하세요.</p>
+                                    <p>2. 해당 영상의 <b>주소(URL)를 복사</b>해주세요.</p>
+                                    <p>3. 다시 이 화면으로 돌아와서 <b>위 빈칸에 주소를 붙여넣고 [검색/적용] 버튼</b>을 누르시면 완료됩니다!</p>
+                                    <button onClick={() => setShowSearchGuide(false)} className="mt-1 self-end text-red-400 hover:text-red-600 underline">안내 닫기</button>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 my-1">
                             <div className="h-px bg-gray-300 flex-1"></div>
                             <span className="text-gray-400 text-sm">또는</span>
                             <div className="h-px bg-gray-300 flex-1"></div>
@@ -372,7 +466,7 @@
                         <input type="file" accept="audio/*" onChange={handleFileUpload} ref={fileInputRef} className="hidden" />
                         <button 
                             onClick={() => { if (fileInputRef.current) fileInputRef.current.click(); }}
-                            className="flex items-center justify-center gap-2 w-full bg-white border-2 border-blue-400 text-blue-500 hover:bg-blue-50 py-2 px-6 rounded-xl transition"
+                            className="flex items-center justify-center gap-2 w-full bg-white border-2 border-blue-400 text-blue-500 hover:bg-blue-50 py-3 px-6 rounded-xl transition shadow-sm"
                         >
                             <Music className="w-5 h-5" /> MP3 파일(내 컴퓨터) 선택하기
                         </button>
@@ -382,9 +476,9 @@
                     <div className="mt-6 text-center">
                         {musicMode !== 'default' ? (
                           <div className="flex flex-col items-center gap-1">
-                            <p className="text-green-600 font-bold text-lg bg-green-100 px-4 py-1.5 rounded-full inline-flex items-center gap-2">
-                                {musicMode === 'youtube' ? <YoutubeIcon className="w-5 h-5 text-red-500"/> : <Music className="w-5 h-5"/>}
-                                현재 음악: {musicName}
+                            <p className="text-green-600 font-bold text-lg bg-green-100 px-4 py-1.5 rounded-full inline-flex items-center justify-center gap-2 w-full truncate">
+                                {musicMode === 'youtube' ? <YoutubeIcon className="w-5 h-5 text-red-500 flex-shrink-0"/> : <Music className="w-5 h-5 flex-shrink-0"/>}
+                                <span className="truncate">현재 음악: {musicName}</span>
                             </p>
                             <button onClick={handleResetMusic} className="text-sm text-gray-500 underline hover:text-gray-700 mt-2">
                               초기화 (선생님 기본 배경음 사용)
@@ -402,9 +496,9 @@
                 </div>
               )}
 
-              {/* 진행 화면 */}
+              {/* --- 진행 화면 --- */}
               {started && currentStep < steps.length && (
-                <div className="bg-white/90 backdrop-blur-md rounded-[3rem] p-8 md:p-12 shadow-2xl text-center max-w-3xl w-full border-4 border-white relative overflow-hidden">
+                <div className="bg-white/90 backdrop-blur-md rounded-[3rem] p-8 md:p-12 shadow-2xl text-center max-w-3xl w-full border-4 border-white relative overflow-hidden mt-16 md:mt-0">
                   <div className="absolute top-0 left-0 h-3 bg-gray-100 w-full">
                     <div className="h-full bg-blue-400 transition-all duration-1000" style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}></div>
                   </div>
@@ -433,9 +527,9 @@
                 </div>
               )}
 
-              {/* 완료 화면 */}
+              {/* --- 완료 화면 --- */}
               {started && currentStep >= steps.length && (
-                <div className="bg-white/95 backdrop-blur-md rounded-[3rem] p-12 shadow-2xl text-center max-w-2xl w-full border-4 border-green-200 animate-fade-in-up">
+                <div className="bg-white/95 backdrop-blur-md rounded-[3rem] p-12 shadow-2xl text-center max-w-2xl w-full border-4 border-green-200 animate-fade-in-up mt-16 md:mt-0">
                   <div className="flex justify-center mb-8"><CheckCircle2 className="w-24 h-24 text-green-500" /></div>
                   <h1 className="text-4xl md:text-5xl text-green-600 mb-8 leading-snug">우리 반을 깨끗하게 해줘서<br/>고마워! 💖</h1>
                   <p className="text-3xl text-gray-700 mb-12 bg-green-50 p-6 rounded-2xl">점심 맛있게 먹고<br/>5교시 수업을 준비해주세요! 🍱</p>
