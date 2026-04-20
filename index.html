@@ -39,6 +39,15 @@
             opacity: 0.01;
             overflow: hidden;
         }
+
+        /* 청소 구역 이미지 스크롤바 숨김 */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 </head>
 <body>
@@ -61,6 +70,8 @@
         const YoutubeIcon = ({ className }) => <svg viewBox="0 0 24 24" fill="currentColor" className={className}><path d="M21.582 6.186a2.618 2.618 0 0 0-1.841-1.854C18.118 3.9 12 3.9 12 3.9s-6.118 0-7.741.432a2.618 2.618 0 0 0-1.841 1.854C2 7.828 2 12 2 12s0 4.172.418 5.814a2.618 2.618 0 0 0 1.841 1.854C5.882 20.1 12 20.1 12 20.1s6.118 0 7.741-.432a2.618 2.618 0 0 0 1.841-1.854C22 16.172 22 12 22 12s0-4.172-.418-5.814zM9.99 15.45V8.55L15.993 12 9.99 15.45z"/></svg>;
         const SearchIcon = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
         const HomeIcon = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
+        const ImageIcon = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>;
+        const TrashIcon = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
 
         const steps = [
           { title: "책상 위, 서랍 정리하기", time: 50, emoji: "📚✨" },
@@ -98,13 +109,15 @@
           const [youtubeSearchInput, setYoutubeSearchInput] = useState("");
           const [youtubeId, setYoutubeId] = useState("");
           const [ytApiReady, setYtApiReady] = useState(false);
-          
-          // 검색 안내 관련 상태
           const [showSearchGuide, setShowSearchGuide] = useState(false);
+          
+          // 청소 구역 이미지 상태
+          const [cleaningImg, setCleaningImg] = useState(null);
           
           const audioRef = useRef(null);
           const wakeLockRef = useRef(null);
           const fileInputRef = useRef(null);
+          const imgInputRef = useRef(null);
           const ytPlayerRef = useRef(null);
           
           const playbackStateRef = useRef({ started: false, isPaused: false, currentStep: 0, userInteracted: false });
@@ -135,7 +148,7 @@
             };
           }, []);
 
-          // === 12시 정각 자동 시작 로직 ===
+          // 12시 정각 자동 시작 로직
           useEffect(() => {
             const checkTimeInterval = setInterval(() => {
                 const now = new Date();
@@ -154,8 +167,9 @@
             return () => clearInterval(checkTimeInterval);
           }, []);
 
-          // 1. 초기 로딩 시: 저장된 음악 설정 불러오기 및 유튜브 API 로드
+          // 1. 초기 로딩 시: 저장된 음악 설정 및 청소 구역 이미지 불러오기
           useEffect(() => {
+            // 음악 불러오기
             localforage.getItem('savedBgmData').then((savedData) => {
               if (savedData) {
                 if (savedData.type === 'file' && savedData.blob) {
@@ -171,6 +185,14 @@
               }
             }).catch(err => console.error("음악 불러오기 실패:", err));
 
+            // 청소구역 이미지 불러오기
+            localforage.getItem('savedCleaningImg').then((blob) => {
+              if (blob) {
+                setCleaningImg(URL.createObjectURL(blob));
+              }
+            }).catch(err => console.error("청소 이미지 불러오기 실패:", err));
+
+            // 유튜브 API 세팅
             if (!window.YT) {
                 const tag = document.createElement('script');
                 tag.src = "https://www.youtube.com/iframe_api";
@@ -244,6 +266,25 @@
             }
           };
 
+          // 청소 구역 이미지 업로드 핸들러
+          const handleImageUpload = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              localforage.setItem('savedCleaningImg', file).then(() => {
+                const fileUrl = URL.createObjectURL(file);
+                setCleaningImg(fileUrl);
+              });
+            }
+          };
+
+          // 청소 구역 이미지 초기화(삭제) 핸들러
+          const handleResetImage = () => {
+            localforage.removeItem('savedCleaningImg').then(() => {
+                setCleaningImg(null);
+                if (imgInputRef.current) imgInputRef.current.value = "";
+            });
+          };
+
           // 선택한 유튜브 곡 적용 함수
           const applyYoutubeMusic = (id, title) => {
             localforage.setItem('savedBgmData', { type: 'youtube', id: id, title: title }).then(() => {
@@ -263,7 +304,6 @@
             if (extractedId) {
                 applyYoutubeMusic(extractedId, "선택한 유튜브 배경음악");
             } else {
-                // 링크가 아닌 일반 검색어일 경우 새 창에서 유튜브 검색 열기
                 window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(youtubeSearchInput)}`, '_blank');
                 setShowSearchGuide(true);
             }
@@ -411,131 +451,179 @@
               <audio ref={audioRef} src={audioSrc} loop />
               <div id="youtube-player-container"><div id="youtube-player"></div></div>
 
-              {/* --- 시작(홈) 화면 --- */}
+              {/* ======================= 시작(홈) 화면 ======================= */}
               {!started && (
-                <div className="bg-white/90 backdrop-blur-md rounded-[3rem] p-8 md:p-12 shadow-2xl text-center max-w-2xl w-full border-4 border-white mt-16 md:mt-0">
+                <div className="bg-white/90 backdrop-blur-md rounded-[3rem] p-8 md:p-12 shadow-2xl text-center max-w-4xl w-full border-4 border-white mt-20 md:mt-0 flex flex-col">
                   <div className="flex justify-center mb-6">
                     <Star className="w-20 h-20 text-yellow-400 fill-yellow-400 animate-pulse" />
                   </div>
                   <h1 className="text-5xl md:text-6xl text-gray-800 mb-4 drop-shadow-sm">신나는 청소 시간!</h1>
-                  <p className="text-xl text-gray-600 mb-8">다 함께 교실을 반짝반짝하게 만들어봐요 ✨</p>
+                  <p className="text-xl text-gray-600 mb-10">다 함께 교실을 반짝반짝하게 만들어봐요 ✨</p>
                   
-                  {/* 음악 설정 패널 */}
-                  <div className="mb-10 p-6 bg-gray-50 rounded-3xl border border-gray-200 shadow-inner text-left">
-                    <p className="text-xl text-gray-700 mb-4 text-center">🎵 우리 반 청소 음악 설정</p>
-                    
-                    <div className="flex flex-col gap-4">
-                        {/* 유튜브 검색 및 입력 영역 */}
-                        <div className="flex flex-col gap-2 relative">
-                            <div className="flex gap-2">
-                                <input 
-                                    type="text" 
-                                    placeholder="유튜브 링크 붙여넣기 또는 노래 제목 검색" 
-                                    value={youtubeSearchInput}
-                                    onChange={(e) => setYoutubeSearchInput(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleYoutubeSubmit()}
-                                    className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-300 focus:border-red-400 outline-none font-sans text-sm shadow-sm"
-                                />
-                                <button 
-                                    onClick={handleYoutubeSubmit}
-                                    className="bg-red-500 hover:bg-red-600 text-white px-5 rounded-xl flex items-center gap-2 transition shadow-sm whitespace-nowrap"
-                                >
-                                    <SearchIcon className="w-5 h-5" /> 검색/적용
-                                </button>
-                            </div>
-                            
-                            {/* 검색 안내 가이드 */}
-                            {showSearchGuide && (
-                                <div className="mt-2 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm animate-fade-in-up flex flex-col gap-2">
-                                    <p className="font-bold">✨ 새 창에 유튜브 검색 결과가 열렸습니다!</p>
-                                    <p>1. 열린 유튜브 창에서 원하는 곡을 클릭하세요.</p>
-                                    <p>2. 해당 영상의 <b>주소(URL)를 복사</b>해주세요.</p>
-                                    <p>3. 다시 이 화면으로 돌아와서 <b>위 빈칸에 주소를 붙여넣고 [검색/적용] 버튼</b>을 누르시면 완료됩니다!</p>
-                                    <button onClick={() => setShowSearchGuide(false)} className="mt-1 self-end text-red-400 hover:text-red-600 underline">안내 닫기</button>
+                  {/* 설정 패널 영역 (2단 그리드 분리) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 flex-1">
+                      
+                      {/* [패널 1] 음악 설정 */}
+                      <div className="p-6 bg-gray-50 rounded-3xl border border-gray-200 shadow-inner text-left flex flex-col h-full">
+                        <p className="text-xl text-gray-700 mb-4 text-center">🎵 우리 반 청소 음악 설정</p>
+                        <div className="flex flex-col gap-4 flex-1">
+                            <div className="flex flex-col gap-2 relative">
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        placeholder="유튜브 주소 붙여넣기 또는 검색" 
+                                        value={youtubeSearchInput}
+                                        onChange={(e) => setYoutubeSearchInput(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleYoutubeSubmit()}
+                                        className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-300 focus:border-red-400 outline-none font-sans text-sm shadow-sm min-w-0"
+                                    />
+                                    <button 
+                                        onClick={handleYoutubeSubmit}
+                                        className="bg-red-500 hover:bg-red-600 text-white px-4 rounded-xl flex items-center gap-1 transition shadow-sm whitespace-nowrap"
+                                    >
+                                        <SearchIcon className="w-5 h-5" /> 검색
+                                    </button>
                                 </div>
+                                
+                                {showSearchGuide && (
+                                    <div className="mt-2 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs md:text-sm animate-fade-in-up flex flex-col gap-2">
+                                        <p className="font-bold">✨ 새 창에 결과가 열렸습니다!</p>
+                                        <p>1. 열린 창에서 원하는 곡을 클릭하세요.</p>
+                                        <p>2. 해당 영상의 <b>주소(URL)를 복사</b>하세요.</p>
+                                        <p>3. 위 빈칸에 붙여넣고 <b>[검색]</b>을 누르세요.</p>
+                                        <button onClick={() => setShowSearchGuide(false)} className="mt-1 self-end text-red-400 hover:text-red-600 underline">닫기</button>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-4 my-1">
+                                <div className="h-px bg-gray-300 flex-1"></div>
+                                <span className="text-gray-400 text-sm">또는</span>
+                                <div className="h-px bg-gray-300 flex-1"></div>
+                            </div>
+
+                            <input type="file" accept="audio/*" onChange={handleFileUpload} ref={fileInputRef} className="hidden" />
+                            <button 
+                                onClick={() => { if (fileInputRef.current) fileInputRef.current.click(); }}
+                                className="flex items-center justify-center gap-2 w-full bg-white border-2 border-blue-400 text-blue-500 hover:bg-blue-50 py-3 px-6 rounded-xl transition shadow-sm"
+                            >
+                                <Music className="w-5 h-5" /> 내 컴퓨터 MP3 선택
+                            </button>
+                        </div>
+
+                        {/* 현재 음악 상태 표시 */}
+                        <div className="mt-6 text-center">
+                            {musicMode !== 'default' ? (
+                              <div className="flex flex-col items-center gap-1">
+                                <p className="text-green-600 font-bold text-sm md:text-base bg-green-100 px-4 py-2 rounded-full inline-flex items-center justify-center gap-2 w-full truncate">
+                                    {musicMode === 'youtube' ? <YoutubeIcon className="w-5 h-5 text-red-500 flex-shrink-0"/> : <Music className="w-5 h-5 flex-shrink-0"/>}
+                                    <span className="truncate">현재 음악: {musicName}</span>
+                                </p>
+                                <button onClick={handleResetMusic} className="text-xs text-gray-500 underline hover:text-gray-700 mt-2">
+                                  초기화 (선생님 기본 배경음 사용)
+                                </button>
+                              </div>
+                            ) : (
+                              <p className="text-gray-400 text-sm mt-2">설정 안 함 (기본 배경음 재생)</p>
                             )}
                         </div>
+                      </div>
 
-                        <div className="flex items-center gap-4 my-1">
-                            <div className="h-px bg-gray-300 flex-1"></div>
-                            <span className="text-gray-400 text-sm">또는</span>
-                            <div className="h-px bg-gray-300 flex-1"></div>
-                        </div>
-
-                        {/* MP3 파일 업로드 */}
-                        <input type="file" accept="audio/*" onChange={handleFileUpload} ref={fileInputRef} className="hidden" />
-                        <button 
-                            onClick={() => { if (fileInputRef.current) fileInputRef.current.click(); }}
-                            className="flex items-center justify-center gap-2 w-full bg-white border-2 border-blue-400 text-blue-500 hover:bg-blue-50 py-3 px-6 rounded-xl transition shadow-sm"
-                        >
-                            <Music className="w-5 h-5" /> MP3 파일(내 컴퓨터) 선택하기
-                        </button>
-                    </div>
-
-                    {/* 현재 음악 상태 표시 */}
-                    <div className="mt-6 text-center">
-                        {musicMode !== 'default' ? (
-                          <div className="flex flex-col items-center gap-1">
-                            <p className="text-green-600 font-bold text-lg bg-green-100 px-4 py-1.5 rounded-full inline-flex items-center justify-center gap-2 w-full truncate">
-                                {musicMode === 'youtube' ? <YoutubeIcon className="w-5 h-5 text-red-500 flex-shrink-0"/> : <Music className="w-5 h-5 flex-shrink-0"/>}
-                                <span className="truncate">현재 음악: {musicName}</span>
-                            </p>
-                            <button onClick={handleResetMusic} className="text-sm text-gray-500 underline hover:text-gray-700 mt-2">
-                              초기화 (선생님 기본 배경음 사용)
+                      {/* [패널 2] 청소 구역 이미지 업로드 */}
+                      <div className="p-6 bg-gray-50 rounded-3xl border border-gray-200 shadow-inner text-left flex flex-col h-full justify-between">
+                        <div>
+                            <p className="text-xl text-gray-700 mb-4 text-center">📋 우리 반 청소 구역표 등록</p>
+                            <input type="file" accept="image/*" onChange={handleImageUpload} ref={imgInputRef} className="hidden" />
+                            <button 
+                                onClick={() => { if (imgInputRef.current) imgInputRef.current.click(); }}
+                                className="flex items-center justify-center gap-2 w-full bg-white border-2 border-emerald-400 text-emerald-500 hover:bg-emerald-50 py-3 px-6 rounded-xl transition shadow-sm"
+                            >
+                                <ImageIcon className="w-5 h-5" /> 컴퓨터에서 이미지 선택하기
                             </button>
-                          </div>
-                        ) : (
-                          <p className="text-gray-400 text-sm">설정하지 않으면 선생님의 기본 배경음이 재생됩니다.</p>
-                        )}
-                    </div>
+                        </div>
+                        
+                        <div className="flex flex-col items-center justify-center mt-4 flex-1">
+                            {cleaningImg ? (
+                                <div className="flex flex-col items-center gap-3 w-full">
+                                    <div className="relative w-full max-h-[140px] overflow-hidden rounded-xl border border-gray-300 shadow-sm flex justify-center bg-gray-200">
+                                        <img src={cleaningImg} alt="청소 구역 미리보기" className="h-[140px] w-auto object-contain" />
+                                    </div>
+                                    <button onClick={handleResetImage} className="flex items-center gap-1 text-sm text-gray-500 underline hover:text-red-500 transition">
+                                      <TrashIcon className="w-4 h-4" /> 이미지 지우기
+                                    </button>
+                                </div>
+                            ) : (
+                                <p className="text-gray-400 text-sm text-center">이미지를 올리면 타이머 화면 오른쪽에<br/>청소 구역이 계속 띄워져 있게 됩니다!</p>
+                            )}
+                        </div>
+                      </div>
                   </div>
 
-                  <button onClick={() => setStarted(true)} className="bg-blue-400 hover:bg-blue-500 text-white text-3xl py-5 px-12 rounded-full shadow-lg transform transition hover:scale-105 hover:-translate-y-1 w-full">
+                  <button onClick={() => setStarted(true)} className="bg-blue-400 hover:bg-blue-500 text-white text-3xl py-5 px-12 rounded-full shadow-lg transform transition hover:scale-105 hover:-translate-y-1 w-full mt-auto">
                     청소 시작하기 🚀
                   </button>
                 </div>
               )}
 
-              {/* --- 진행 화면 --- */}
-              {started && currentStep < steps.length && (
-                <div className="bg-white/90 backdrop-blur-md rounded-[3rem] p-8 md:p-12 shadow-2xl text-center max-w-3xl w-full border-4 border-white relative overflow-hidden mt-16 md:mt-0">
-                  <div className="absolute top-0 left-0 h-3 bg-gray-100 w-full">
-                    <div className="h-full bg-blue-400 transition-all duration-1000" style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}></div>
+              {/* ======================= 진행 & 완료 화면 ======================= */}
+              {started && (
+                <div className="flex flex-col lg:flex-row gap-8 items-center justify-center w-full max-w-[90rem] mt-24 md:mt-0 z-10 px-4">
+                  
+                  {/* [좌측] 타이머 & 완료 박스 */}
+                  <div className="flex-1 flex justify-center w-full min-w-0">
+                    {currentStep < steps.length ? (
+                      <div className="bg-white/90 backdrop-blur-md rounded-[3rem] p-8 md:p-12 shadow-2xl text-center w-full max-w-3xl border-4 border-white relative overflow-hidden">
+                        <div className="absolute top-0 left-0 h-3 bg-gray-100 w-full">
+                          <div className="h-full bg-blue-400 transition-all duration-1000" style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}></div>
+                        </div>
+                        <div className="mt-4 mb-4">
+                          <span className="bg-white text-blue-500 px-6 py-2 rounded-full text-2xl font-bold shadow-sm border-2 border-blue-100">{currentStep + 1} / {steps.length} 단계</span>
+                        </div>
+                        <h2 className="text-4xl md:text-5xl text-gray-800 mt-8 mb-4 leading-tight break-keep">{steps[currentStep].title}</h2>
+                        <div className="text-7xl mb-8 animate-bounce">{steps[currentStep].emoji}</div>
+                        <div className="my-8 relative">
+                          <div className="text-8xl md:text-9xl font-bold text-gray-700 drop-shadow-md tracking-wider">{formatTime(timeLeft)}</div>
+                          <div className="w-full bg-gray-100 h-4 rounded-full mt-8 overflow-hidden">
+                            <div className="h-full bg-pink-400 transition-all duration-1000 rounded-full" style={{ width: `${(timeLeft / steps[currentStep].time) * 100}%` }}></div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-center gap-6 mt-10">
+                          <button onClick={handlePrev} disabled={currentStep === 0} className={`p-4 rounded-full transition-transform hover:scale-110 shadow-md ${currentStep === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>
+                            <SkipBack className="w-8 h-8 md:w-10 md:h-10" />
+                          </button>
+                          <button onClick={() => setIsPaused(!isPaused)} className="bg-yellow-400 hover:bg-yellow-500 text-white p-6 rounded-full shadow-lg transition-transform hover:scale-110">
+                            {isPaused ? <Play className="w-12 h-12 md:w-14 md:h-14 fill-white" /> : <Pause className="w-12 h-12 md:w-14 md:h-14 fill-white" />}
+                          </button>
+                          <button onClick={handleNext} className="p-4 rounded-full bg-white text-gray-700 hover:bg-gray-50 shadow-md transition-transform hover:scale-110">
+                            <SkipForward className="w-8 h-8 md:w-10 md:h-10" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-white/95 backdrop-blur-md rounded-[3rem] p-12 shadow-2xl text-center w-full max-w-2xl border-4 border-green-200 animate-fade-in-up">
+                        <div className="flex justify-center mb-8"><CheckCircle2 className="w-24 h-24 text-green-500" /></div>
+                        <h1 className="text-4xl md:text-5xl text-green-600 mb-8 leading-snug break-keep">우리 반을 깨끗하게 해줘서<br/>고마워! 💖</h1>
+                        <p className="text-3xl text-gray-700 mb-12 bg-green-50 p-6 rounded-2xl break-keep">점심 맛있게 먹고<br/>5교시 수업을 준비해주세요! 🍱</p>
+                        <button onClick={handleRestart} className="flex items-center justify-center gap-3 bg-gray-800 hover:bg-gray-900 text-white text-2xl py-4 px-10 rounded-full mx-auto shadow-xl transition transform hover:scale-105">
+                          <RefreshCw className="w-7 h-7" /> 처음부터 다시 하기
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="mt-4 mb-4">
-                    <span className="bg-white text-blue-500 px-6 py-2 rounded-full text-2xl font-bold shadow-sm border-2 border-blue-100">{currentStep + 1} / {steps.length} 단계</span>
-                  </div>
-                  <h2 className="text-4xl md:text-5xl text-gray-800 mt-8 mb-4 leading-tight">{steps[currentStep].title}</h2>
-                  <div className="text-7xl mb-8 animate-bounce">{steps[currentStep].emoji}</div>
-                  <div className="my-8 relative">
-                    <div className="text-8xl md:text-9xl font-bold text-gray-700 drop-shadow-md tracking-wider">{formatTime(timeLeft)}</div>
-                    <div className="w-full bg-gray-100 h-4 rounded-full mt-8 overflow-hidden">
-                      <div className="h-full bg-pink-400 transition-all duration-1000 rounded-full" style={{ width: `${(timeLeft / steps[currentStep].time) * 100}%` }}></div>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-center gap-6 mt-10">
-                    <button onClick={handlePrev} disabled={currentStep === 0} className={`p-4 rounded-full transition-transform hover:scale-110 shadow-md ${currentStep === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>
-                      <SkipBack className="w-8 h-8 md:w-10 md:h-10" />
-                    </button>
-                    <button onClick={() => setIsPaused(!isPaused)} className="bg-yellow-400 hover:bg-yellow-500 text-white p-6 rounded-full shadow-lg transition-transform hover:scale-110">
-                      {isPaused ? <Play className="w-12 h-12 md:w-14 md:h-14 fill-white" /> : <Pause className="w-12 h-12 md:w-14 md:h-14 fill-white" />}
-                    </button>
-                    <button onClick={handleNext} className="p-4 rounded-full bg-white text-gray-700 hover:bg-gray-50 shadow-md transition-transform hover:scale-110">
-                      <SkipForward className="w-8 h-8 md:w-10 md:h-10" />
-                    </button>
-                  </div>
-                </div>
-              )}
 
-              {/* --- 완료 화면 --- */}
-              {started && currentStep >= steps.length && (
-                <div className="bg-white/95 backdrop-blur-md rounded-[3rem] p-12 shadow-2xl text-center max-w-2xl w-full border-4 border-green-200 animate-fade-in-up mt-16 md:mt-0">
-                  <div className="flex justify-center mb-8"><CheckCircle2 className="w-24 h-24 text-green-500" /></div>
-                  <h1 className="text-4xl md:text-5xl text-green-600 mb-8 leading-snug">우리 반을 깨끗하게 해줘서<br/>고마워! 💖</h1>
-                  <p className="text-3xl text-gray-700 mb-12 bg-green-50 p-6 rounded-2xl">점심 맛있게 먹고<br/>5교시 수업을 준비해주세요! 🍱</p>
-                  <button onClick={handleRestart} className="flex items-center justify-center gap-3 bg-gray-800 hover:bg-gray-900 text-white text-2xl py-4 px-10 rounded-full mx-auto shadow-xl transition transform hover:scale-105">
-                    <RefreshCw className="w-7 h-7" /> 처음부터 다시 하기
-                  </button>
+                  {/* [우측] 청소 구역 이미지 패널 (이미지가 업로드 된 경우에만 표시) */}
+                  {cleaningImg && (
+                    <div className="w-full lg:w-[450px] xl:w-[500px] bg-white/90 backdrop-blur-md rounded-[3rem] p-6 shadow-2xl border-4 border-white flex flex-col items-center animate-fade-in-up flex-shrink-0 lg:max-h-[85vh]">
+                        <div className="bg-emerald-100 text-emerald-700 font-bold px-8 py-3 rounded-full mb-4 text-2xl shadow-sm border-2 border-emerald-200 flex-shrink-0 whitespace-nowrap">
+                            📋 이달의 청소 구역
+                        </div>
+                        {/* 이미지 영역 (가로/세로 비율을 최대한 유지하며 넘칠 경우 안에서만 스크롤 되도록 설정) */}
+                        <div className="w-full flex-1 overflow-y-auto rounded-2xl bg-gray-50 flex items-start justify-center p-2 border border-gray-200 hide-scrollbar shadow-inner">
+                            <img src={cleaningImg} alt="청소 구역" className="w-full h-auto rounded-xl object-contain" />
+                        </div>
+                    </div>
+                  )}
+
                 </div>
               )}
             </div>
