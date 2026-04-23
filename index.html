@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -428,6 +428,16 @@
             }
           };
           
+          // 타임라인 클릭으로 시간 직접 조절하기
+          const handleProgressClick = (e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+            const newTimeLeft = Math.round(steps[currentStep].time * percentage);
+            // 0초가 되면 바로 넘어가버리므로 최소 1초는 남기도록 설정
+            setTimeLeft(newTimeLeft > 0 ? newTimeLeft : 1);
+          };
+          
           // 처음(홈)으로 되돌아가기
           const handleRestart = () => {
             setStarted(false);
@@ -645,9 +655,21 @@
                         <div className="text-7xl mb-8 animate-bounce">{steps[currentStep].emoji}</div>
                         <div className="my-8 relative">
                           <div className="text-8xl md:text-9xl font-bold text-gray-700 drop-shadow-md tracking-wider">{formatTime(timeLeft)}</div>
-                          <div className="w-full bg-gray-100 h-4 rounded-full mt-8 overflow-hidden">
-                            <div className="h-full bg-pink-400 transition-all duration-1000 rounded-full" style={{ width: `${(timeLeft / steps[currentStep].time) * 100}%` }}></div>
+                          
+                          {/* 클릭 가능한 타임라인 (마우스 오버 시 도톰해지는 애니메이션 적용) */}
+                          <div 
+                            className="w-full h-10 mt-6 flex items-center cursor-pointer group" 
+                            onClick={handleProgressClick}
+                            title="원하는 위치를 클릭해서 시간을 조절하세요"
+                          >
+                            <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden shadow-inner group-hover:h-6 transition-all duration-300">
+                              <div 
+                                className="h-full bg-pink-400 transition-all duration-300 ease-out rounded-full group-hover:bg-pink-500" 
+                                style={{ width: `${(timeLeft / steps[currentStep].time) * 100}%` }}
+                              ></div>
+                            </div>
                           </div>
+
                         </div>
                         <div className="flex items-center justify-center gap-6 mt-10">
                           <button onClick={handlePrev} disabled={currentStep === 0} className={`p-4 rounded-full transition-transform hover:scale-110 shadow-md ${currentStep === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>
