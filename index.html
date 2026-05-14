@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -40,7 +40,7 @@
             overflow: hidden;
         }
 
-        /* 청소 구역 이미지 스크롤바 숨김 */
+        /* 스크롤바 숨김 */
         .hide-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -72,13 +72,16 @@
         const HomeIcon = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
         const ImageIcon = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>;
         const TrashIcon = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
+        const SettingsIcon = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>;
+        const PlusIcon = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
+        const XIcon = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
         
         // 볼륨 아이콘
         const VolumeX = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>;
         const Volume1 = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>;
         const Volume2 = ({ className }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>;
 
-        const steps = [
+        const defaultSteps = [
           { title: "책상 위, 서랍 정리하기", time: 50, emoji: "📚✨" },
           { title: "책상 살짝 밀고, 창문 열기", time: 50, emoji: "☀️💨" },
           { title: "청소 도구 챙겨오기", time: 30, emoji: "🏃💨" },
@@ -99,11 +102,19 @@
         function App() {
           const [started, setStarted] = useState(false);
           const [currentStep, setCurrentStep] = useState(0);
-          const [timeLeft, setTimeLeft] = useState(steps[0].time);
+          
+          // 청소 단계 상태화
+          const [steps, setSteps] = useState(defaultSteps);
+          const [timeLeft, setTimeLeft] = useState(defaultSteps[0].time);
+          
           const [isPaused, setIsPaused] = useState(false);
           const [isFullscreen, setIsFullscreen] = useState(false);
           const [userInteracted, setUserInteracted] = useState(false);
           
+          // 설정 모달 관련 상태
+          const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+          const [editingSteps, setEditingSteps] = useState([...defaultSteps]);
+
           // 실시간 날짜/시간 상태
           const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -129,11 +140,11 @@
           const imgInputRef = useRef(null);
           const ytPlayerRef = useRef(null);
           
-          const playbackStateRef = useRef({ started: false, isPaused: false, currentStep: 0, userInteracted: false });
+          const playbackStateRef = useRef({ started: false, isPaused: false, currentStep: 0, userInteracted: false, stepsLength: defaultSteps.length });
 
           useEffect(() => {
-            playbackStateRef.current = { started, isPaused, currentStep, userInteracted };
-          }, [started, isPaused, currentStep, userInteracted]);
+            playbackStateRef.current = { started, isPaused, currentStep, userInteracted, stepsLength: steps.length };
+          }, [started, isPaused, currentStep, userInteracted, steps]);
 
           // 현재 시각 업데이트 (1초마다)
           useEffect(() => {
@@ -178,6 +189,18 @@
 
           // 1. 초기 로딩 시: 저장된 데이터 불러오기
           useEffect(() => {
+            // 저장된 단계 불러오기
+            localforage.getItem('savedSteps').then((saved) => {
+                if (saved && Array.isArray(saved) && saved.length > 0) {
+                    setSteps(saved);
+                    setEditingSteps(saved);
+                    // 앱이 시작되기 전이라면 첫 번째 단계의 시간으로 설정
+                    if (!started) {
+                        setTimeLeft(saved[0].time);
+                    }
+                }
+            });
+
             // 음악 불러오기
             localforage.getItem('savedBgmData').then((savedData) => {
               if (savedData) {
@@ -223,6 +246,58 @@
             }
           }, []);
 
+          // 설정 모달 제어 함수들
+          const openSettings = () => {
+              setEditingSteps([...steps]);
+              setIsSettingsOpen(true);
+          };
+
+          const closeSettings = () => {
+              setIsSettingsOpen(false);
+          };
+
+          const resetSettingsToDefault = () => {
+              if(confirm("기본 단계 설정으로 되돌리시겠습니까?")) {
+                  setEditingSteps([...defaultSteps]);
+              }
+          };
+
+          const updateEditingStep = (index, field, value) => {
+              const newSteps = [...editingSteps];
+              newSteps[index][field] = field === 'time' ? Number(value) : value;
+              setEditingSteps(newSteps);
+          };
+
+          const addStep = () => {
+              setEditingSteps([...editingSteps, { title: "새로운 단계", time: 60, emoji: "✨" }]);
+          };
+
+          const removeStep = (index) => {
+              if (editingSteps.length > 1) {
+                  setEditingSteps(editingSteps.filter((_, i) => i !== index));
+              } else {
+                  alert("최소 1개의 단계는 필요합니다.");
+              }
+          };
+
+          const saveSettings = () => {
+              if (editingSteps.length === 0) {
+                  alert("최소 1개의 단계는 필요합니다.");
+                  return;
+              }
+              setSteps(editingSteps);
+              localforage.setItem('savedSteps', editingSteps);
+              setIsSettingsOpen(false);
+              
+              // 설정 저장 후 화면 초기화
+              setStarted(false);
+              setCurrentStep(0);
+              setTimeLeft(editingSteps[0].time);
+              setIsPaused(false);
+              if(audioRef.current) audioRef.current.currentTime = 0;
+              if (ytPlayerRef.current && typeof ytPlayerRef.current.seekTo === 'function') ytPlayerRef.current.seekTo(0);
+          };
+
           // 음악 초기화 함수
           const handleResetMusic = () => {
             localforage.removeItem('savedBgmData').then(() => {
@@ -236,7 +311,7 @@
             });
           };
 
-          // 볼륨 제어 로직 (볼륨 조절 시 오디오와 유튜브 동시에 적용)
+          // 볼륨 제어 로직
           useEffect(() => {
               if (audioRef.current) {
                   audioRef.current.volume = volume / 100;
@@ -260,7 +335,7 @@
               if (isMuted && val > 0) setIsMuted(false);
           };
 
-          // 2. 유튜브 플레이어 초기화
+          // 유튜브 플레이어 초기화
           useEffect(() => {
             if (musicMode === 'youtube' && ytApiReady && youtubeId) {
                 if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
@@ -279,8 +354,8 @@
                                 if (isMuted) event.target.mute();
                             },
                             'onStateChange': (event) => {
-                                const { started: currStarted, isPaused: currPaused, currentStep: currStep } = playbackStateRef.current;
-                                if (event.data === 0 && currStarted && !currPaused && currStep < steps.length) {
+                                const { started: currStarted, isPaused: currPaused, currentStep: currStep, stepsLength } = playbackStateRef.current;
+                                if (event.data === 0 && currStarted && !currPaused && currStep < stepsLength) {
                                     event.target.seekTo(0);
                                     event.target.playVideo();
                                 }
@@ -311,7 +386,7 @@
             }
           };
 
-          // 청소 구역 이미지 업로드 핸들러
+          // 청소 구역 이미지 업로드
           const handleImageUpload = (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -322,7 +397,7 @@
             }
           };
 
-          // 청소 구역 이미지 초기화(삭제) 핸들러
+          // 청소 구역 이미지 지우기
           const handleResetImage = () => {
             localforage.removeItem('savedCleaningImg').then(() => {
                 setCleaningImg(null);
@@ -342,7 +417,7 @@
             });
           };
 
-          // 유튜브 에러 없는 안전한 새 창 검색
+          // 유튜브 링크 직접 등록 또는 검색
           const handleYoutubeSubmit = () => {
             if (!youtubeSearchInput.trim()) return;
             const extractedId = extractYouTubeId(youtubeSearchInput);
@@ -366,13 +441,14 @@
             return () => { releaseWakeLock(); };
           }, [started, isPaused]);
 
-          // 타이머 & 전체화면 로직
+          // 전체화면 변경 감지
           useEffect(() => {
             const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
             document.addEventListener('fullscreenchange', handleFullscreenChange);
             return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
           }, []);
 
+          // 타이머 진행 로직
           useEffect(() => {
             if (!started || isPaused || currentStep >= steps.length) return;
             const timer = setInterval(() => {
@@ -386,7 +462,7 @@
               });
             }, 1000);
             return () => clearInterval(timer);
-          }, [started, isPaused, currentStep]);
+          }, [started, isPaused, currentStep, steps]);
 
           // 음악 재생/정지 동기화
           useEffect(() => {
@@ -411,7 +487,7 @@
                     }
                 } catch (e) {}
             }
-          }, [started, isPaused, currentStep, musicMode]);
+          }, [started, isPaused, currentStep, musicMode, steps]);
 
           const handleNext = () => {
             if (currentStep < steps.length) {
@@ -434,7 +510,6 @@
             const clickX = e.clientX - rect.left;
             const percentage = Math.max(0, Math.min(1, clickX / rect.width));
             const newTimeLeft = Math.round(steps[currentStep].time * percentage);
-            // 0초가 되면 바로 넘어가버리므로 최소 1초는 남기도록 설정
             setTimeLeft(newTimeLeft > 0 ? newTimeLeft : 1);
           };
           
@@ -482,11 +557,11 @@
                   <div className="text-lg md:text-2xl font-bold">{timeStr}</div>
               </div>
 
-              {/* 우측 상단: 컨트롤 버튼 영역 (볼륨 + 홈 + 전체화면) */}
+              {/* 우측 상단: 컨트롤 버튼 영역 (볼륨 + 홈 + 설정 + 전체화면) */}
               <div className="absolute top-4 right-4 md:top-6 md:right-6 flex items-center gap-2 md:gap-3 z-50">
                   
                   {/* 볼륨 조절 컨트롤 */}
-                  <div className="flex items-center gap-1 md:gap-2 bg-white/60 backdrop-blur-md px-3 py-2 rounded-full shadow-sm transition-all group hover:bg-white/90">
+                  <div className="flex items-center gap-1 md:gap-2 bg-white/60 backdrop-blur-md px-3 py-2 rounded-full shadow-sm transition-all group hover:bg-white/90 hidden sm:flex">
                       <button onClick={() => setIsMuted(!isMuted)} className="p-1 text-gray-600 hover:text-blue-500 transition-colors" title="음소거">
                           {isMuted || volume === 0 ? <VolumeX className="w-5 h-5 md:w-6 md:h-6 text-red-500" /> : volume < 50 ? <Volume1 className="w-5 h-5 md:w-6 md:h-6" /> : <Volume2 className="w-5 h-5 md:w-6 md:h-6" />}
                       </button>
@@ -510,6 +585,16 @@
                           <HomeIcon className="w-5 h-5 md:w-6 md:h-6 text-gray-700" />
                       </button>
                   )}
+                  
+                  {/* 톱니바퀴 설정 버튼 */}
+                  <button 
+                      onClick={openSettings} 
+                      className="p-2 md:p-3 bg-white/60 hover:bg-white/90 rounded-full shadow-sm transition-all"
+                      title="청소 단계 설정"
+                  >
+                      <SettingsIcon className="w-5 h-5 md:w-6 md:h-6 text-gray-700" />
+                  </button>
+
                   <button 
                       onClick={toggleFullscreen} 
                       className="p-2 md:p-3 bg-white/60 hover:bg-white/90 rounded-full shadow-sm transition-all"
@@ -518,6 +603,68 @@
                       {isFullscreen ? <Minimize className="w-5 h-5 md:w-6 md:h-6 text-gray-700" /> : <Maximize className="w-5 h-5 md:w-6 md:h-6 text-gray-700" />}
                   </button>
               </div>
+
+              {/* ======================= 설정 모달 ======================= */}
+              {isSettingsOpen && (
+                  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex justify-center items-center p-4">
+                      <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl animate-fade-in-up">
+                          <div className="flex justify-between items-center mb-6">
+                              <h2 className="text-2xl font-bold text-gray-800">⚙️ 청소 단계 설정</h2>
+                              <button onClick={closeSettings} className="p-2 hover:bg-gray-100 rounded-full transition text-gray-500">
+                                  <XIcon className="w-6 h-6" />
+                              </button>
+                          </div>
+                          
+                          <div className="overflow-y-auto flex-1 pr-2 hide-scrollbar flex flex-col gap-3">
+                              {editingSteps.map((step, idx) => (
+                                  <div key={idx} className="flex flex-col sm:flex-row gap-2 items-center bg-gray-50 p-3 rounded-xl border border-gray-200">
+                                      <span className="font-bold text-blue-500 w-6 text-center shrink-0">{idx + 1}</span>
+                                      <input 
+                                          type="text" 
+                                          value={step.emoji} 
+                                          onChange={(e) => updateEditingStep(idx, 'emoji', e.target.value)} 
+                                          className="w-16 p-2 rounded-lg border border-gray-300 text-center text-xl outline-none focus:border-blue-400 shrink-0"
+                                          title="이모티콘"
+                                      />
+                                      <input 
+                                          type="text" 
+                                          value={step.title} 
+                                          onChange={(e) => updateEditingStep(idx, 'title', e.target.value)} 
+                                          className="flex-1 p-2 rounded-lg border border-gray-300 outline-none focus:border-blue-400 w-full"
+                                          placeholder="단계 이름 입력"
+                                      />
+                                      <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end">
+                                          <input 
+                                              type="number" 
+                                              value={step.time} 
+                                              onChange={(e) => updateEditingStep(idx, 'time', Math.max(1, e.target.value))} 
+                                              className="w-20 p-2 rounded-lg border border-gray-300 text-right outline-none focus:border-blue-400"
+                                              min="1"
+                                              title="시간(초)"
+                                          />
+                                          <span className="text-gray-600 font-sans text-sm">초</span>
+                                          <button onClick={() => removeStep(idx)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="단계 삭제">
+                                              <TrashIcon className="w-5 h-5" />
+                                          </button>
+                                      </div>
+                                  </div>
+                              ))}
+                              
+                              <button onClick={addStep} className="mt-2 py-3 border-2 border-dashed border-blue-300 text-blue-500 rounded-xl hover:bg-blue-50 transition flex items-center justify-center gap-2 font-bold">
+                                  <PlusIcon className="w-5 h-5" /> 새로운 단계 추가하기
+                              </button>
+                          </div>
+                          
+                          <div className="mt-6 pt-4 border-t border-gray-200 flex flex-wrap justify-between gap-4 items-center">
+                              <button onClick={resetSettingsToDefault} className="text-gray-500 underline hover:text-gray-700 text-sm">기본 설정으로 되돌리기</button>
+                              <div className="flex gap-2 w-full sm:w-auto">
+                                  <button onClick={closeSettings} className="flex-1 sm:flex-none px-6 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition">취소</button>
+                                  <button onClick={saveSettings} className="flex-1 sm:flex-none px-6 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition font-bold shadow-md">저장하기</button>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              )}
 
               {/* 보이지 않는 오디오 / 유튜브 플레이어 */}
               <audio ref={audioRef} src={audioSrc} loop />
@@ -559,7 +706,7 @@
                                 
                                 {showSearchGuide && (
                                     <div className="mt-2 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs md:text-sm animate-fade-in-up flex flex-col gap-2">
-                                        <p className="font-bold">✨ 새 창에 유튜브 결과가 열렸습니다!</p>
+                                        <p className="font-bold">✨ 새 창에 결과가 열렸습니다!</p>
                                         <p>1. 열린 창에서 원하는 곡을 클릭하세요.</p>
                                         <p>2. 해당 영상의 <b>주소(URL)를 복사</b>하세요.</p>
                                         <p>3. 위 빈칸에 붙여넣고 <b>[검색]</b>을 누르세요.</p>
