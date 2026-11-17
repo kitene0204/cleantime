@@ -117,10 +117,12 @@
           
           const [isPaused, setIsPaused] = useState(false);
           const [isFullscreen, setIsFullscreen] = useState(false);
-          const [userInteracted, setUserInteracted] = useState(false);
+          // 주소 끝에 ?auto 가 붙으면(전용 실행 파일로 연 경우) 클릭 없이도 자동 시작·소리 재생
+          const [userInteracted, setUserInteracted] = useState(() => new URLSearchParams(window.location.search).has('auto'));
           
           // 설정 모달 관련 상태
           const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+          const [settingsTab, setSettingsTab] = useState('steps'); // 'steps' | 'music'
           const [editingSteps, setEditingSteps] = useState([...defaultSteps]);
 
           // 실시간 날짜/시간 상태
@@ -136,7 +138,6 @@
           const [ytIndex, setYtIndex] = useState(0);
           const [ytApiReady, setYtApiReady] = useState(false);
           const [showSearchGuide, setShowSearchGuide] = useState(false);
-          const [isMusicOpen, setIsMusicOpen] = useState(false);
           const [autoStartPrompt, setAutoStartPrompt] = useState(false);
 
           const safeYtIndex = ytPlaylist.length ? Math.min(ytIndex, ytPlaylist.length - 1) : 0;
@@ -291,8 +292,9 @@
           }, []);
 
           // 설정 모달 제어 함수들
-          const openSettings = () => {
+          const openSettings = (tab = 'steps') => {
               setEditingSteps([...steps]);
+              setSettingsTab(tab);
               setIsSettingsOpen(true);
           };
 
@@ -840,7 +842,7 @@
                   
                   {/* 음악 설정 버튼 (청소 중에도 언제든지) */}
                   <button
-                      onClick={() => setIsMusicOpen(true)}
+                      onClick={() => openSettings('music')}
                       className="p-2 md:p-3 bg-white/60 hover:bg-white/90 rounded-full shadow-sm transition-all"
                       title="음악 설정"
                   >
@@ -849,9 +851,9 @@
 
                   {/* 톱니바퀴 설정 버튼 */}
                   <button 
-                      onClick={openSettings} 
+                      onClick={() => openSettings('steps')}
                       className="p-2 md:p-3 bg-white/60 hover:bg-white/90 rounded-full shadow-sm transition-all"
-                      title="청소 단계 설정"
+                      title="설정 (청소 단계 · 음악)"
                   >
                       <SettingsIcon className="w-5 h-5 md:w-6 md:h-6 text-gray-700" />
                   </button>
@@ -869,13 +871,41 @@
               {isSettingsOpen && (
                   <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex justify-center items-center p-4">
                       <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl animate-fade-in-up">
-                          <div className="flex justify-between items-center mb-6">
-                              <h2 className="text-2xl font-bold text-gray-800">⚙️ 청소 단계 설정</h2>
+                          <div className="flex justify-between items-center mb-4">
+                              <h2 className="text-2xl font-bold text-gray-800">⚙️ 설정</h2>
                               <button onClick={closeSettings} className="p-2 hover:bg-gray-100 rounded-full transition text-gray-500">
                                   <XIcon className="w-6 h-6" />
                               </button>
                           </div>
-                          
+
+                          {/* 탭: 청소 단계 / 음악 */}
+                          <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-2xl mb-5">
+                              {[['steps', '🧹 청소 단계'], ['music', '🎵 음악']].map(([t, label]) => (
+                                  <button key={t} onClick={() => setSettingsTab(t)}
+                                      className={`py-2 rounded-xl text-lg transition ${settingsTab === t ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}>
+                                      {label}
+                                  </button>
+                              ))}
+                          </div>
+
+                          {settingsTab === 'music' ? (
+                            <>
+                              <div className="overflow-y-auto flex-1 pr-2 hide-scrollbar flex flex-col gap-4">
+                                  {renderMusicPanel()}
+                                  {renderVolumeRow()}
+                              </div>
+                              <div className="mt-6 pt-4 border-t border-gray-200 flex items-center justify-between gap-3">
+                                  <p className="text-gray-400 text-xs md:text-sm">음악은 바로 바뀌어요. 청소 타이머는 그대로 계속 흘러가요!</p>
+                                  <button onClick={closeSettings} className="px-6 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition font-bold shadow-md shrink-0">닫기</button>
+                              </div>
+                            </>
+                          ) : (
+                          <>
+                          {started && (
+                              <p className="mb-3 text-sm text-orange-600 bg-orange-50 border border-orange-200 rounded-xl px-4 py-2">
+                                  ⚠️ 청소 단계를 바꿔서 저장하면 타이머가 처음 화면으로 돌아가요. (음악만 바꾸려면 🎵 음악 탭을 쓰세요)
+                              </p>
+                          )}
                           <div className="overflow-y-auto flex-1 pr-2 hide-scrollbar flex flex-col gap-3">
                               {editingSteps.map((step, idx) => (
                                   <div key={idx} className="flex flex-col sm:flex-row gap-2 items-center bg-gray-50 p-3 rounded-xl border border-gray-200">
@@ -923,29 +953,8 @@
                                   <button onClick={saveSettings} className="flex-1 sm:flex-none px-6 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition font-bold shadow-md">저장하기</button>
                               </div>
                           </div>
-                      </div>
-                  </div>
-              )}
-
-              {/* ======================= 음악 설정 모달 (청소 중에도 열 수 있음) ======================= */}
-              {isMusicOpen && (
-                  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex justify-center items-center p-4"
-                       onClick={(e) => { if (e.target === e.currentTarget) setIsMusicOpen(false); }}>
-                      <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl animate-fade-in-up">
-                          <div className="flex justify-between items-center mb-5">
-                              <h2 className="text-2xl font-bold text-gray-800">🎵 청소 음악 설정</h2>
-                              <button onClick={() => setIsMusicOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition text-gray-500">
-                                  <XIcon className="w-6 h-6" />
-                              </button>
-                          </div>
-                          <div className="overflow-y-auto flex-1 hide-scrollbar flex flex-col gap-4">
-                              {renderMusicPanel()}
-                              {renderVolumeRow()}
-                          </div>
-                          <div className="mt-5 pt-4 border-t border-gray-200 flex items-center justify-between gap-3">
-                              <p className="text-gray-400 text-xs md:text-sm">바꾸면 바로 적용돼요. 타이머는 그대로 계속 흘러가요!</p>
-                              <button onClick={() => setIsMusicOpen(false)} className="px-6 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition font-bold shadow-md shrink-0">닫기</button>
-                          </div>
+                          </>
+                          )}
                       </div>
                   </div>
               )}
