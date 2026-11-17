@@ -94,6 +94,9 @@
 
         const bgColors = ['bg-pink-100', 'bg-orange-100', 'bg-yellow-100', 'bg-green-100', 'bg-blue-100', 'bg-purple-100'];
 
+        // 청소구역 알리미 포스터 (포스터만 보이는 주소)
+        const CLEAN_EMBED_URL = 'https://kitene0204.github.io/clean/?embed';
+
         // 자동 시작 시각 (매일 12시 1분)
         const AUTO_START_HOUR = 12;
         const AUTO_START_MINUTE = 1;
@@ -150,6 +153,13 @@
           
           // 청소 구역 이미지 상태
           const [cleaningImg, setCleaningImg] = useState(null);
+          // 청소 구역 표시 방식: 'auto'(청소구역 알리미 포스터 자동 연동) | 'image'(직접 올린 이미지)
+          const [zoneSource, setZoneSource] = useState('auto');
+          useEffect(() => {
+            localforage.getItem('zoneSource').then(v => { if (v === 'auto' || v === 'image') setZoneSource(v); }).catch(() => {});
+          }, []);
+          const changeZoneSource = (v) => { setZoneSource(v); localforage.setItem('zoneSource', v); };
+          const showZonePanel = zoneSource === 'auto' || !!cleaningImg;
           
           const audioRef = useRef(null);
           const wakeLockRef = useRef(null);
@@ -987,17 +997,35 @@
                       <div className="p-6 bg-gray-50 rounded-3xl border border-gray-200 shadow-inner text-left flex flex-col h-full justify-between">
                         <div>
                             <p className="text-xl text-gray-700 mb-4 text-center">📋 우리 반 청소 구역표 등록</p>
+                            {/* 표시 방식 선택 */}
+                            <div className="grid grid-cols-2 gap-1 bg-gray-200 p-1 rounded-2xl mb-4">
+                                {[['auto', '🔗 알리미 연동'], ['image', '🖼️ 이미지 올리기']].map(([v, label]) => (
+                                    <button key={v} onClick={() => changeZoneSource(v)}
+                                        className={`py-2 rounded-xl text-sm md:text-base transition ${zoneSource === v ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}>
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
                             <input type="file" accept="image/*" onChange={handleImageUpload} ref={imgInputRef} className="hidden" />
-                            <button 
+                            {zoneSource === 'image' && (
+                            <button
                                 onClick={() => { if (imgInputRef.current) imgInputRef.current.click(); }}
                                 className="flex items-center justify-center gap-2 w-full bg-white border-2 border-emerald-400 text-emerald-500 hover:bg-emerald-50 py-3 px-6 rounded-xl transition shadow-sm"
                             >
                                 <ImageIcon className="w-5 h-5" /> 컴퓨터에서 이미지 선택하기
                             </button>
+                            )}
                         </div>
-                        
+
                         <div className="flex flex-col items-center justify-center mt-4 flex-1">
-                            {cleaningImg ? (
+                            {zoneSource === 'auto' ? (
+                                <div className="flex flex-col items-center gap-2 w-full">
+                                    <div className="w-[100px] rounded-lg overflow-hidden border border-gray-300 shadow-sm bg-gray-200" style={{ aspectRatio: '768 / 1086' }}>
+                                        <iframe src={CLEAN_EMBED_URL} title="청소구역 알리미 미리보기" className="w-full h-full border-0 block pointer-events-none" loading="lazy" />
+                                    </div>
+                                    <p className="text-gray-400 text-xs text-center">청소구역 알리미에 올린 포스터가<br/>타이머 화면 오른쪽에 자동으로 떠요!</p>
+                                </div>
+                            ) : cleaningImg ? (
                                 <div className="flex flex-col items-center gap-3 w-full">
                                     <div className="relative w-full max-h-[140px] overflow-hidden rounded-xl border border-gray-300 shadow-sm flex justify-center bg-gray-200">
                                         <img src={cleaningImg} alt="청소 구역 미리보기" className="h-[140px] w-auto object-contain" />
@@ -1077,15 +1105,19 @@
                     )}
                   </div>
 
-                  {/* [우측] 청소 구역 이미지 패널 (이미지가 업로드 된 경우에만 표시) */}
-                  {cleaningImg && (
+                  {/* [우측] 청소 구역 패널 (알리미 연동 또는 직접 올린 이미지) */}
+                  {showZonePanel && (
                     <div className="w-full lg:w-[450px] xl:w-[500px] bg-white/90 backdrop-blur-md rounded-[3rem] p-6 shadow-2xl border-4 border-white flex flex-col items-center animate-fade-in-up flex-shrink-0 lg:max-h-[85vh]">
                         <div className="bg-emerald-100 text-emerald-700 font-bold px-8 py-3 rounded-full mb-4 text-2xl shadow-sm border-2 border-emerald-200 flex-shrink-0 whitespace-nowrap">
                             📋 이달의 청소 구역
                         </div>
                         {/* 이미지 영역 (가로/세로 비율을 최대한 유지하며 넘칠 경우 안에서만 스크롤 되도록 설정) */}
                         <div className="w-full flex-1 overflow-y-auto rounded-2xl bg-gray-50 flex items-start justify-center p-2 border border-gray-200 hide-scrollbar shadow-inner">
-                            <img src={cleaningImg} alt="청소 구역" className="w-full h-auto rounded-xl object-contain" />
+                            {zoneSource === 'auto' ? (
+                                <iframe src={CLEAN_EMBED_URL} title="이달의 청소 구역" className="w-full border-0 block rounded-xl" style={{ aspectRatio: '768 / 1086' }} />
+                            ) : (
+                                <img src={cleaningImg} alt="청소 구역" className="w-full h-auto rounded-xl object-contain" />
+                            )}
                         </div>
                     </div>
                   )}
