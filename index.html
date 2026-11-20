@@ -141,8 +141,10 @@
           const [ytIndex, setYtIndex] = useState(0);
           const [ytApiReady, setYtApiReady] = useState(false);
           const [showSearchGuide, setShowSearchGuide] = useState(false);
-          // 페이지 안 유튜브 검색 (YouTube Data API 키는 선생님이 직접 등록, 이 브라우저에만 저장)
-          const [ytApiKey, setYtApiKey] = useState('');
+          // 페이지 안 유튜브 검색. 기본 키는 사이트에 박아 둠(kitene0204.github.io + YouTube Data API로 제한된 키) → 어느 컴퓨터에서나 바로 검색
+          // 키를 바꾸면 이 브라우저에만 저장돼서 기본 키 대신 쓰임
+          const BUILTIN_YT_KEY = 'AIzaSyCaRwlg0B3popn2FXLP3WPxQijw5HleenY';
+          const [ytApiKey, setYtApiKey] = useState(BUILTIN_YT_KEY);
           const [apiKeyInput, setApiKeyInput] = useState('');
           const [showKeyForm, setShowKeyForm] = useState(false);
           const [searchPanel, setSearchPanel] = useState(null); // null | { query, loading, error, results: [{id,title,channel,thumb}] }
